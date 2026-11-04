@@ -6,6 +6,51 @@ import { loadConfig } from "../src/config";
 import { startApp } from "../src/server";
 import { writeWeeklySnapshot } from "../src/sources/snapshots";
 
+test("local directory rules classify local and combined events without a remote agent", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ord-local-classification-"));
+  const metadata = join(dir, "local.json");
+  const route = join(dir, "route.jsonl");
+  await writeFile(metadata, JSON.stringify({ directoryRules: [{ prefix: "/work/orca", client: "Orca" }] }));
+  await writeFile(
+    route,
+    `${JSON.stringify({ ts: "2026-01-01T00:00:00Z", session: "s", decision: "skipped", reason: "exception:test", dir: "/work/orca/project" })}\n`,
+  );
+  const app = await startApp(
+    loadConfig(
+      {
+        ORD_STATE_DIR: dir,
+        ORD_PORT: "0",
+        ORD_STATS_ENABLED: "false",
+        ORD_LOCAL_SOURCE_CONFIG: metadata,
+        ORD_ROUTE_PATH: route,
+      },
+      [],
+    ),
+  );
+  try {
+    const state = await (await fetch(`${app.url}/api/state`)).json();
+    const expected = { directory: "/work/orca/project", client: "Orca", evidence: "configured" };
+    expect(state.events[0].provenance).toEqual(expected);
+    expect(state.exchange.sources[0].id).toBe("local");
+    expect(state.exchange.sources[0].state.events[0].provenance).toEqual(expected);
+    await appendFile(
+      route,
+      `${JSON.stringify({ ts: "2026-01-01T00:00:01Z", session: "s2", decision: "skipped", reason: "exception:test", dir: "/work/orca/other" })}\n`,
+    );
+    let updated = state;
+    for (let i = 0; i < 100 && updated.events.length < 2; i++) {
+      await Bun.sleep(20);
+      updated = await (await fetch(`${app.url}/api/state`)).json();
+    }
+    expect(updated.events).toHaveLength(2);
+    expect(updated.events[1].provenance.client).toBe("Orca");
+    expect(updated.exchange.sources[0].state.events[1].provenance.client).toBe("Orca");
+  } finally {
+    await app.stop();
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("server reads configured source paths", async () => {
   const dir = await mkdtemp(join(tmpdir(), "ord-paths-"));
   const path = join(dir, "custom=route.jsonl");

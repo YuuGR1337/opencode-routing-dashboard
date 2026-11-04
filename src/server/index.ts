@@ -1,32 +1,38 @@
 import { realpath, stat } from "node:fs/promises";
+import { isIP } from "node:net";
 import { resolve, sep } from "node:path";
 import type { Config } from "../config";
-import { aggregate, type DashboardInput, MAX_PAYLOAD_BYTES, type Source } from "../core/aggregate";
-import { parseLine } from "../core/schema";
-import { loadSnapshots } from "../sources/snapshots";
-import { startStats } from "../sources/stats";
-import { startTail } from "../sources/tail";
+import { type DashboardInput, MAX_PAYLOAD_BYTES } from "../core/aggregate";
+import { createAnalyticsCache } from "../core/analytics-cache";
+import { type FederatedState, type FederationSource, federate } from "../core/federation";
+import { buildReport, formatReport, parseReportRange } from "../core/reports";
+import { loadAnalyticsSettings } from "../sources/analytics";
+import { startCollector } from "../sources/collector";
+import { startRemote } from "../sources/remote";
+import { type LocalSourceConfig, loadLocalSourceConfig, loadSourceConfig } from "../sources/source-config";
+import { startAnalyticsEngine } from "./analytics";
 
 export async function startApp(
   config: Config,
   options: { heartbeatMs?: number; staticDir?: string; historyRefreshMs?: number } = {},
 ) {
-  const names: Source[] = ["observe", "route", "permissions"];
-  const paths = config.sourcePaths;
-  const input: DashboardInput = {
-    observe: [],
-    route: [],
-    permissions: [],
-    stats: null,
-    malformed: { observe: 0, route: 0, permissions: 0 },
-    evicted: { observe: 0, route: 0, permissions: 0 },
-    sources: {
-      observe: { status: "missing", path: paths.observe },
-      route: { status: "missing", path: paths.route },
-      permissions: { status: "missing", path: paths.permissions },
-    },
-  };
-  let state = aggregate(input);
+  const bind = config.bind;
+  if (!((isIP(bind) === 4 && bind.startsWith("127.")) || bind === "::1" || bind === "0:0:0:0:0:0:0:1"))
+    throw new Error("Dashboard bind must be loopback");
+  let input: DashboardInput;
+  let state: FederatedState & { analytics?: ReturnType<ReturnType<typeof startAnalyticsEngine>["snapshot"]> };
+  let analytics: ReturnType<typeof startAnalyticsEngine> | undefined;
+  const analyticsCache = createAnalyticsCache();
+  const remoteSources: FederationSource[] = [];
+  const remotes: ReturnType<typeof startRemote>[] = [];
+  let localMetadata: LocalSourceConfig = {};
+  const localSource = (): FederationSource => ({
+    id: "local",
+    label: "Local",
+    status: "live",
+    input,
+    ...localMetadata,
+  });
   let seq = 0;
   let ready = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -36,7 +42,10 @@ export async function startApp(
   const maxPayload = MAX_PAYLOAD_BYTES;
   const publish = () => {
     timer = undefined;
-    state = aggregate(input);
+    state = {
+      ...federate([localSource(), ...remoteSources]),
+      ...(analytics ? { analytics: analytics.snapshot() } : {}),
+    };
     seq++;
     const data = encoder.encode(`event: delta\ndata: ${JSON.stringify({ state, seq, demo: config.demo })}\n\n`);
     for (const client of clients) {
@@ -53,75 +62,86 @@ export async function startApp(
   const changed = () => {
     if (ready && !timer) timer = setTimeout(publish, 50);
   };
-  const tails: Awaited<ReturnType<typeof startTail>>[] = [];
-  let stats: Awaited<ReturnType<typeof startStats>> | undefined;
+  let collector: Awaited<ReturnType<typeof startCollector>> | undefined;
   let heartbeat: ReturnType<typeof setInterval> | undefined;
-  let historyTimer: ReturnType<typeof setTimeout> | undefined;
-  let stopped = false;
-  let historyLoading: Promise<void> | undefined;
-  const refreshHistory = async () => {
-    const result = await loadSnapshots(config.snapshotDir);
-    if (stopped) return;
-    const different =
-      JSON.stringify([input.history, input.historyStatus]) !== JSON.stringify([result.snapshots, result.status]);
-    input.history = result.snapshots;
-    input.historyStatus = result.status;
-    if (different) changed();
-  };
-  const scheduleHistory = () => {
-    historyTimer = setTimeout(() => {
-      historyLoading = refreshHistory().finally(() => {
-        if (!stopped) scheduleHistory();
-      });
-    }, options.historyRefreshMs ?? 5000);
-  };
   try {
-    await refreshHistory();
-    for (const source of names) {
-      tails.push(
-        await startTail({
-          path: paths[source],
-          onLine(line: string) {
-            const parsed = parseLine(source, line);
-            if (!parsed.ok) input.malformed[source]++;
-            else {
-              if (parsed.source === "observe") input.observe.push(parsed.record);
-              else if (parsed.source === "route") input.route.push(parsed.record);
-              else input.permissions.push(parsed.record);
-              const records = input[source];
-              if (records.length > config.maxRecords) {
-                const excess = records.length - config.maxRecords;
-                input.evicted![source] += excess;
-                records.splice(0, excess);
-              }
-            }
+    const analyticsSettings = config.analyticsConfigFile
+      ? await loadAnalyticsSettings(config.analyticsConfigFile)
+      : { quotas: [], alerts: { holdMs: 0, repeatMs: 60000, activeMs: 60000, desktop: false } };
+    const configured = config.configFile ? await loadSourceConfig(config.configFile) : [];
+    localMetadata = config.localSourceConfigFile ? await loadLocalSourceConfig(config.localSourceConfigFile) : {};
+    const tokens = configured.map((source) => {
+      const token = source.tokenEnv ? process.env[source.tokenEnv] : undefined;
+      if (source.tokenEnv && !token) throw new Error("Missing configured source token");
+      return token;
+    });
+    collector = await startCollector(
+      config,
+      (next) => {
+        analyticsCache.invalidate(next);
+        input = next;
+        changed();
+      },
+      { historyRefreshMs: options.historyRefreshMs },
+    );
+    input = collector.input;
+    for (const source of configured)
+      remoteSources.push({
+        id: source.id,
+        label: source.label,
+        ...(source.client && { client: source.client }),
+        ...(source.directoryRules && { directoryRules: source.directoryRules }),
+        status: "connecting",
+        input: null,
+      });
+    state = federate([localSource(), ...remoteSources]);
+    analytics = startAnalyticsEngine(
+      analyticsSettings,
+      () => {
+        const epochs = new Set<string>();
+        return [localSource(), ...remoteSources].map((source) => {
+          const epoch = "epoch" in source ? source.epoch : undefined;
+          const duplicate = !!epoch && epochs.has(epoch);
+          if (epoch && !duplicate) epochs.add(epoch);
+          const shown = state.exchange.sources.find((item) => item.id === source.id);
+          const reason = duplicate ? "duplicate source epoch" : !source.input ? "source unavailable" : undefined;
+          return {
+            id: source.id,
+            status: duplicate ? "error" : source.status,
+            included: !reason,
+            ...(reason ? { reason } : {}),
+            uiOmitted: shown?.state?.window.events.omitted ?? 0,
+            ...(shown?.detail === "Source exceeds payload budget"
+              ? { uiReason: "source exceeds UI payload budget" }
+              : {}),
+            state: source.input && !duplicate ? analyticsCache.get(source.input) : null,
+          };
+        });
+      },
+      changed,
+    );
+    state = { ...state, analytics: analytics.snapshot() };
+    ready = true;
+    configured.forEach((source, index) => {
+      const entry = remoteSources[index]!;
+      remotes.push(
+        startRemote(source, {
+          token: tokens[index],
+          onUpdate(next, envelope) {
+            analyticsCache.invalidate(next);
+            entry.input = next;
+            entry.epoch = envelope.epoch;
+            entry.lastSeenAt = new Date().toISOString();
             changed();
           },
-          onMalformed() {
-            input.malformed[source]++;
-            changed();
-          },
-          onStatus(status: "ok" | "missing" | "error", detail?: string) {
-            input.sources![source] = { status, path: paths[source], ...(detail ? { detail } : {}) };
+          onStatus(status, detail) {
+            entry.status = status === "ok" ? "live" : status === "connecting" && entry.input ? "stale" : status;
+            entry.detail = detail;
             changed();
           },
         }),
       );
-    }
-    stats = await startStats({
-      enabled: config.statsEnabled,
-      interval: config.statsInterval,
-      command: config.statsCommand,
-      file: config.statsFile,
-      onUpdate(value, status) {
-        input.stats = value;
-        input.statsStatus = status;
-        changed();
-      },
     });
-    state = aggregate(input);
-    ready = true;
-    scheduleHistory();
     heartbeat = setInterval(() => {
       for (const client of clients) {
         try {
@@ -149,7 +169,53 @@ export async function startApp(
         if (request.method !== "GET" && request.method !== "HEAD")
           return new Response("Method not allowed", { status: 405, headers: { ...headers, Allow: "GET, HEAD" } });
         const url = new URL(request.url);
-        if (url.pathname === "/api/state") return Response.json({ ...state, seq, demo: config.demo }, { headers });
+        if (url.pathname === "/api/export") {
+          const params = url.searchParams;
+          if (
+            ["from", "to", "format"].some((key) => params.getAll(key).length !== 1) ||
+            params.getAll("source").length > 1
+          )
+            return new Response("Invalid report parameters", { status: 400, headers });
+          const from = params.get("from");
+          const to = params.get("to");
+          const format = params.get("format");
+          if (!from || !to || (format !== "md" && format !== "csv"))
+            return new Response("Invalid report parameters", { status: 400, headers });
+          let range: ReturnType<typeof parseReportRange>;
+          try {
+            range = parseReportRange(from, to);
+          } catch {
+            return new Response("Invalid report range", { status: 400, headers });
+          }
+          const sourceId = params.get("source");
+          const sources =
+            sourceId === null
+              ? state.exchange.sources
+              : state.exchange.sources.filter((source) => source.id === sourceId);
+          if (!sources.length) return new Response("Unknown source", { status: 400, headers });
+          if (sources.some((source) => source.status !== "live" || !source.state))
+            return new Response("Source unavailable", { status: 503, headers });
+          const report = buildReport(
+            sources.map((source) => ({ id: source.id, label: source.label, state: source.state! })),
+            range,
+          );
+          const body = formatReport(report, format);
+          if (encoder.encode(body).byteLength > maxPayload)
+            return new Response("Report too large", { status: 503, headers });
+          return new Response(request.method === "HEAD" ? null : body, {
+            headers: {
+              ...headers,
+              "Content-Type": format === "csv" ? "text/csv; charset=utf-8" : "text/markdown; charset=utf-8",
+              "Content-Disposition": `attachment; filename="routing-report.${format}"`,
+            },
+          });
+        }
+        if (url.pathname === "/api/state") {
+          const body = JSON.stringify({ ...state, seq, demo: config.demo });
+          if (encoder.encode(body).byteLength > maxPayload)
+            return new Response("State too large", { status: 503, headers });
+          return new Response(body, { headers: { ...headers, "Content-Type": "application/json" } });
+        }
         if (url.pathname === "/api/events") {
           if (request.method === "HEAD")
             return new Response(null, { headers: { ...headers, "Content-Type": "text/event-stream" } });
@@ -219,8 +285,6 @@ export async function startApp(
       stop() {
         return (stopping ??= (async () => {
           ready = false;
-          stopped = true;
-          if (historyTimer) clearTimeout(historyTimer);
           if (timer) clearTimeout(timer);
           clearInterval(heartbeat);
           for (const client of clients) {
@@ -230,25 +294,19 @@ export async function startApp(
           }
           clients.clear();
           server.stop(true);
-          await Promise.all([
-            ...tails.map((tail) => tail.stop()),
-            stats!.stop(),
-            ...(historyLoading ? [historyLoading] : []),
-          ]);
+          await analytics?.stop();
+          await Promise.all(remotes.map((remote) => remote.stop()));
+          await collector!.stop();
         })());
       },
     };
   } catch (error) {
     ready = false;
-    stopped = true;
-    if (historyTimer) clearTimeout(historyTimer);
     if (timer) clearTimeout(timer);
     if (heartbeat) clearInterval(heartbeat);
-    await Promise.all([
-      ...tails.map((tail) => tail.stop()),
-      ...(stats ? [stats.stop()] : []),
-      ...(historyLoading ? [historyLoading] : []),
-    ]);
+    await analytics?.stop();
+    await Promise.all(remotes.map((remote) => remote.stop()));
+    if (collector) await collector.stop();
     throw error;
   }
 }

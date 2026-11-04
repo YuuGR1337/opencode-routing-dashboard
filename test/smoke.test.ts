@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { VERSION } from "../src/cli";
 
-test("scaffold loads", () => {
-  expect(VERSION).toBe("0.1.0");
+test("requested v0.2.0 loads", () => {
+  expect(VERSION).toBe("0.2.0");
 });

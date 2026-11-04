@@ -37,9 +37,11 @@ describe("CLI", () => {
     expect(result.stderr).toContain("Unknown option: --not-a-flag");
   });
 
-  test("preserves version", async () => {
+  test("CLI and package versions match the requested 0.2.0", async () => {
     const { VERSION } = await import("../src/cli");
-    expect(VERSION).toBe("0.1.0");
+    const pkg = await Bun.file(new URL("../package.json", import.meta.url)).json();
+    expect(VERSION).toBe("0.2.0");
+    expect(pkg.version).toBe(VERSION);
   });
 
   test("captures a snapshot and exits without starting HTTP", async () => {

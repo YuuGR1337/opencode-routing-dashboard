@@ -87,3 +87,40 @@ Escape from search blurs and allows the browser's native query-clear behavior;
 the narrow filter-scope label may truncate, while the ticker retains the full
 scope label. These choices preserve visible DEMO labeling, 22 px data rows,
 local fonts and the switchboard as the primary view.
+
+## M9 review
+
+Reviewed source-backed fixture captures `m9-real-*` (PC agent, Orca agent and
+local collector) plus deterministic edge-state `m9-*` harness captures at
+1440×900 and 1024×768. “real” names the real transport in this demo, not real
+user data. Combined, configured Orca provenance, replay, quota/presets and sparse
+bay captures preserve the phosphor palette, local typography, 22 px rows,
+hairlines, ghost-only routing and the exchange as the primary view.
+
+Accepted adaptations:
+- Source lamps occupy a separate compact row, with glyphs and text for live,
+  stale, connecting and error. Source-wide client labels remain configured.
+- Alerts, quota, presets and export use the existing drawers and keys 5–8.
+  Quota bars are small SVGs; unknown/partial evidence is textual, not a
+  fabricated zero or execution cable. Combined model totals stay unavailable.
+- Sparse bays compress real call spacing and add role counts, never dummy calls.
+  Replay places a compact transport at the bay's lower edge and uses one cursor
+  for the wire, selection, timeline and Call in focus; its retained sample and
+  non-durable nature are visible. Narrow layouts retain details in the drawer.
+- Orphaned filter values remain visibly selectable; eviction restores focus to
+  the ticker; rejected payload count lives in the source-health strip. These are
+  behavioral corrections, not visual departures from the switchboard system.
+- Preset columns label Jev latency/context agreement and recorded/estimated
+  attribution. File samples cannot prove runtime selection. Report controls
+  share the period picker and use same-origin GET downloads only.
+
+No new palette, card grid, glass effect, idle animation or UI dependency was added.
+
+## M11 acceptance review
+
+Opened/reviewed `m11-alert-ticker-{1440x900,1024x768}.png`, captured with the
+source-backed DEMO agents. The active-alert strip uses the existing 22 px row,
+hairlines, amber glyph/source labels and precise classifier/execution text.
+It belongs to the ticker, opens the existing alert drawer, follows source
+selection and disappears without active evidence. No idle motion or new visual
+system is introduced; the one-row increase in ticker controls is accepted.

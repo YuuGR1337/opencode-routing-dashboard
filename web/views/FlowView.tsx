@@ -1,9 +1,13 @@
 import type { ReactNode } from "react";
 import type { DashboardState, FlowEvent } from "../../src/core/aggregate";
+import { bayLayout } from "../bay";
+import { clientText, evidence } from "../exchange";
+import type { ReplayCoverage, Speed } from "../replay";
 import {
   fmt2,
   fmtDay,
   fmtNum,
+  fmtSession,
   fmtTs,
   isRole,
   RAIL_CALLS,
@@ -16,15 +20,27 @@ import {
   trunc,
 } from "./format";
 import { Unavailable } from "./parts";
+import { ReplayBar, ReplayStart } from "./ReplayBar";
 
-// Patch bay geometry (SVG user units == CSS px at 1:1).
-const BAY_W = 560;
-const ROW_H = 40;
-const BAY_H = RAIL_CALLS * ROW_H;
-const JACK_X = 400;
-const CTX_X = 426;
-const jackY = (role: Role) => 40 + ROLES.indexOf(role) * 80;
+// Patch bay geometry comes from bayLayout (SVG user units == CSS px at 1:1).
 const laneX = (i: number) => 60 + i * 22;
+/** The per-role tally needs room under the bay; beyond this many calls the jack counts carry the numbers. */
+const TALLY_MAX_CALLS = 4;
+
+export type ReplayView = {
+  /** Session events up to and including the cursor, oldest first. */
+  played: FlowEvent[];
+  length: number;
+  index: number;
+  playing: boolean;
+  speed: Speed;
+  coverage: ReplayCoverage;
+  onPlay: () => void;
+  onStep: (delta: number) => void;
+  onSpeed: (speed: Speed) => void;
+  onStop: () => void;
+};
+export type WaitingSource = { id: string; status: string; detail?: string };
 
 function PatchBay({
   state,
@@ -33,6 +49,9 @@ function PatchBay({
   focus,
   arrived,
   scope,
+  replay,
+  onReplayStart,
+  waiting,
 }: {
   state: DashboardState;
   rows: FlowEvent[];
@@ -40,12 +59,19 @@ function PatchBay({
   focus: FlowEvent | undefined;
   arrived: ReadonlySet<string>;
   scope: string;
+  replay?: ReplayView;
+  onReplayStart?: () => void;
+  waiting?: WaitingSource;
 }) {
-  const counts = new Map<string, { sug: number; ctx: number }>();
-  for (const role of ROLES) counts.set(role, { sug: 0, ctx: 0 });
-  for (const e of rows) {
+  const bay = bayLayout(rail.length, RAIL_CALLS);
+  const { jackX: JACK_X, ctxX: CTX_X, rowH: ROW_H, jackY } = bay;
+  const counts = new Map<string, { sug: number; ctx: number; agree: number }>();
+  for (const role of ROLES) counts.set(role, { sug: 0, ctx: 0, agree: 0 });
+  // During a replay the counts describe the events replayed so far, not the whole window.
+  for (const e of replay ? replay.played : rows) {
     if (isRole(e.suggestion)) counts.get(e.suggestion)!.sug++;
     if (isRole(e.contextAgent)) counts.get(e.contextAgent)!.ctx++;
+    if (isRole(e.suggestion) && e.suggestion === e.contextAgent) counts.get(e.suggestion)!.agree++;
   }
   const sug = focus && isRole(focus.suggestion) ? focus.suggestion : null;
   const ctx = focus && isRole(focus.contextAgent) ? focus.contextAgent : null;
@@ -61,78 +87,121 @@ function PatchBay({
         </span>
       </h2>
       <div className="bay-body">
-        <svg
-          className="bay-svg"
-          viewBox={`0 0 ${BAY_W} ${BAY_H}`}
-          width={BAY_W}
-          height={BAY_H}
-          role="img"
-          aria-label="Jev suggestion wires to role jacks"
-        >
-          {rail.map((e, i) => {
-            if (!isRole(e.suggestion)) return null;
-            const y0 = i * ROW_H + ROW_H / 2;
-            const y1 = jackY(e.suggestion) + ((i % 5) - 2) * 3;
-            const isFocus = focus?.id === e.id;
-            return (
-              <g key={e.id} className={`wire-g${isFocus ? " focus" : ""}`}>
-                <circle className="origin" cx={6} cy={y0} r={2.5} />
-                <path
-                  className="ghost"
-                  data-wire="ghost"
-                  data-role={e.suggestion}
-                  d={`M6,${y0} H${laneX(i)} V${y1} H${JACK_X - 9}`}
-                />
-                {arrived.has(e.id) ? <circle className="token" cx={JACK_X - 9} cy={y1} r={3.5} /> : null}
-              </g>
-            );
-          })}
-          {ROLES.map((role) => {
-            const y = jackY(role);
-            const c = counts.get(role)!;
-            const lit = agree && role === sug;
-            return (
-              <g key={role} className={`jack r-${role}${lit ? " lit" : ""}`} data-role={role} data-jack="role">
-                {focusArrived && role === sug ? <circle className="pulse" cx={JACK_X} cy={y} r={9} /> : null}
-                <circle className="jack-ring" cx={JACK_X} cy={y} r={9} />
-                <circle className="jack-hole" cx={JACK_X} cy={y} r={3.5} />
-                <circle className={`ctx-jack${ctx === role ? " on" : ""}`} data-jack="ctx" cx={CTX_X} cy={y} r={5} />
-                {lit ? (
-                  <text className="tick" x={CTX_X} y={y - 11} textAnchor="middle">
-                    =
+        <div className="bay-main">
+          <svg
+            className="bay-svg"
+            data-sparse={bay.sparse}
+            viewBox={`0 0 ${bay.width} ${bay.height}`}
+            width={bay.width}
+            height={bay.height}
+            role="img"
+            aria-label="Jev suggestion wires to role jacks"
+          >
+            {rail.map((e, i) => {
+              if (!isRole(e.suggestion)) return null;
+              const y0 = i * ROW_H + ROW_H / 2;
+              const y1 = jackY(e.suggestion) + ((i % 5) - 2) * 3;
+              const isFocus = focus?.id === e.id;
+              return (
+                <g key={e.id} className={`wire-g${isFocus ? " focus" : ""}`}>
+                  <circle className="origin" cx={6} cy={y0} r={2.5} />
+                  <path
+                    className="ghost"
+                    data-wire="ghost"
+                    data-role={e.suggestion}
+                    d={`M6,${y0} H${laneX(i)} V${y1} H${JACK_X - 9}`}
+                  />
+                  {arrived.has(e.id) ? <circle className="token" cx={JACK_X - 9} cy={y1} r={3.5} /> : null}
+                </g>
+              );
+            })}
+            {ROLES.map((role) => {
+              const y = jackY(role);
+              const c = counts.get(role)!;
+              const lit = agree && role === sug;
+              return (
+                <g key={role} className={`jack r-${role}${lit ? " lit" : ""}`} data-role={role} data-jack="role">
+                  {focusArrived && role === sug ? <circle className="pulse" cx={JACK_X} cy={y} r={9} /> : null}
+                  <circle className="jack-ring" cx={JACK_X} cy={y} r={9} />
+                  <circle className="jack-hole" cx={JACK_X} cy={y} r={3.5} />
+                  <circle className={`ctx-jack${ctx === role ? " on" : ""}`} data-jack="ctx" cx={CTX_X} cy={y} r={5} />
+                  {lit ? (
+                    <text className="tick" x={CTX_X} y={y - 11} textAnchor="middle">
+                      =
+                    </text>
+                  ) : null}
+                  <text className="jack-label" x={CTX_X + 16} y={y - 2}>
+                    {role}
                   </text>
-                ) : null}
-                <text className="jack-label" x={CTX_X + 16} y={y - 2}>
-                  {role}
-                </text>
-                <text className="jack-count" x={CTX_X + 16} y={y + 12}>
-                  {`sug ${c.sug} · ctx ${c.ctx}`}
-                </text>
-              </g>
-            );
-          })}
-          {sug && ctx && sug !== ctx ? (
-            <path className="kink" d={`M${JACK_X + 9},${jackY(sug)} H${CTX_X - 14} V${jackY(ctx)} H${CTX_X - 5}`} />
+                  <text className="jack-count" x={CTX_X + 16} y={y + 12}>
+                    {`sug ${c.sug} · ctx ${c.ctx}`}
+                  </text>
+                </g>
+              );
+            })}
+            {sug && ctx && sug !== ctx ? (
+              <path className="kink" d={`M${JACK_X + 9},${jackY(sug)} H${CTX_X - 14} V${jackY(ctx)} H${CTX_X - 5}`} />
+            ) : null}
+          </svg>
+          {bay.sparse && rail.length > 0 && rail.length <= TALLY_MAX_CALLS ? (
+            <ul className="tally" aria-label="role tally">
+              {ROLES.map((role) => {
+                const c = counts.get(role)!;
+                return (
+                  <li key={role} className={`r-${role}`} data-tally="role">
+                    <span className="tally-role">{role}</span>
+                    <span>{`sug ${c.sug}`}</span>
+                    <span>{`ctx ${c.ctx}`}</span>
+                    <span>{`agree ${c.agree}`}</span>
+                  </li>
+                );
+              })}
+            </ul>
           ) : null}
-        </svg>
-        {empty ? <SilentExchange state={state} /> : null}
+        </div>
+        {empty ? <SilentExchange state={state} waiting={waiting} /> : null}
         {focus ? <FocusReadout event={focus} /> : null}
       </div>
+      {replay ? (
+        <ReplayBar
+          index={replay.index}
+          length={replay.length}
+          current={focus?.ts ?? ""}
+          playing={replay.playing}
+          speed={replay.speed}
+          coverage={replay.coverage}
+          onPlay={replay.onPlay}
+          onStep={replay.onStep}
+          onSpeed={replay.onSpeed}
+          onStop={replay.onStop}
+        />
+      ) : (
+        <ReplayStart disabled={!focus} onStart={onReplayStart ?? (() => {})} />
+      )}
       <p className="panel-foot dim">
         {focus
           ? `focus ${fmtTs(focus.ts)} · ${
               sug && ctx ? (agree ? "context agreement" : "context disagreement") : "no context comparison"
             }`
           : "no call in focus"}
-        {` · counts over ${scope}`}
+        {` · counts over ${replay ? "events replayed so far" : scope}`}
       </p>
     </section>
   );
 }
 
 function FocusReadout({ event: e }: { event: FlowEvent }) {
+  const tag = evidence(e);
+  const tagged = tag.sourceId !== undefined || tag.client !== undefined || tag.directory !== undefined;
   const rows: [string, string | null, boolean][] = [
     ["ts", fmtTs(e.ts), false],
+    ...(tagged
+      ? ([
+          ["source", tag.sourceId ?? null, false],
+          ["client", clientText(tag), false],
+          ["directory", tag.directory ?? null, false],
+        ] as [string, string | null, boolean][])
+      : []),
     ["suggest", e.suggestion ? `${e.suggestion} ${fmt2(e.confidence)}` : null, false],
     ["needs oracle", e.needsOracle === null ? null : fmt2(e.needsOracle), false],
     ["decision", e.decision ? `${e.decision}${e.reason ? ` · ${e.reason}` : ""}` : null, false],
@@ -158,12 +227,16 @@ function FocusReadout({ event: e }: { event: FlowEvent }) {
   );
 }
 
-function SilentExchange({ state }: { state: DashboardState }) {
+function SilentExchange({ state, waiting }: { state: DashboardState; waiting?: WaitingSource }) {
   const { sources } = state;
   return (
     <div className="silent" role="status">
       <div className="silent-title">silent exchange</div>
-      {sources ? (
+      {waiting ? (
+        <div className="silent-sub">
+          {`waiting for ${waiting.id} · ${waiting.status}${waiting.detail ? ` · ${waiting.detail}` : ""}. No state received from this source yet.`}
+        </div>
+      ) : sources ? (
         <>
           <div className="silent-sub">
             {SOURCES.every((n) => sources[n].status === "ok")
@@ -224,6 +297,7 @@ function CallsRail({
                   ▲
                 </span>
               ) : null}
+              {evidence(e).sourceId ? <span className="call-src">{`${evidence(e).sourceId} `}</span> : null}
               {fmtTs(e.ts)}
             </span>
             <span className="call-text">{e.prompt ?? "(no prompt recorded)"}</span>
@@ -250,7 +324,12 @@ function ModelRail({ state }: { state: DashboardState }) {
         {models.length === 0 ? (
           <div className="rail-empty">
             <div>{statsStatus && statsStatus.status !== "ok" ? `stats ${statsStatus.status}` : "no model stats"}</div>
-            <div className="dim">{statsStatus?.detail ?? "opencode stats --json not read yet"}</div>
+            <div className="dim">
+              {statsStatus?.detail ??
+                (statsStatus?.status === "disabled"
+                  ? "stats polling disabled for this source"
+                  : "stats unavailable · select a source and inspect its health")}
+            </div>
           </div>
         ) : (
           <ul className="model-list">
@@ -291,6 +370,7 @@ function ModelRail({ state }: { state: DashboardState }) {
 
 const COLUMNS: { key: string; label: string; lo?: boolean }[] = [
   { key: "ts", label: "ts" },
+  { key: "src", label: "src" },
   { key: "session", label: "session", lo: true },
   { key: "message", label: "message", lo: true },
   { key: "suggest", label: "suggest" },
@@ -317,6 +397,7 @@ function Ticker({
   arrived,
   filterBar,
   filterNote,
+  notice,
   onSelect,
 }: {
   state: DashboardState;
@@ -325,11 +406,16 @@ function Ticker({
   arrived: ReadonlySet<string>;
   filterBar: ReactNode;
   filterNote: string | null;
+  notice: string | null;
   onSelect: (id: string) => void;
 }) {
   const w = state.window;
   const ev = w.events;
   const ev_ev = w.evicted;
+  // The source column exists only when events carry source evidence; single-source views are unchanged.
+  const columns = rows.some((e) => evidence(e).sourceId !== undefined)
+    ? COLUMNS
+    : COLUMNS.filter((c) => c.key !== "src");
   return (
     <section id="ticker" className="panel ticker" aria-label="ticker tape" tabIndex={-1}>
       <h2 className="panel-title">
@@ -341,14 +427,19 @@ function Ticker({
           {filterNote ? ` · ${filterNote}` : ""}
           {rows.length >= RENDER_LIMIT ? ` · rendering newest ${RENDER_LIMIT}` : ""}
         </span>
-        <span className="keys dim">/ search · f filters · j/k row · enter detail · 1-4 views · esc close</span>
+        <span className="keys dim">/ search · f filters · j/k row · enter detail · 1-8 views · esc close</span>
       </h2>
+      {notice ? (
+        <p className="notice" role="status" data-evicted="true">
+          {notice}
+        </p>
+      ) : null}
       {filterBar}
       <div className="ticker-scroll">
         <table>
           <thead>
             <tr>
-              {COLUMNS.map((c) => (
+              {columns.map((c) => (
                 <th key={c.key} className={`c-${c.key}${c.lo ? " lo" : ""}`}>
                   {c.label}
                 </th>
@@ -366,8 +457,18 @@ function Ticker({
                 onClick={() => onSelect(e.id)}
               >
                 <td className="c-ts">{fmtTs(e.ts)}</td>
+                {columns.length === COLUMNS.length ? (
+                  <td
+                    className="c-src"
+                    title={[evidence(e).sourceId, evidence(e).client, evidence(e).directory]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  >
+                    {evidence(e).sourceId ?? "—"}
+                  </td>
+                ) : null}
                 <td className="c-session lo" title={e.session}>
-                  {e.session}
+                  {fmtSession(e.session)}
                 </td>
                 <td className="c-message lo" title={e.message ?? ""}>
                   {e.message ?? "—"}
@@ -436,6 +537,10 @@ export function FlowView({
   burst,
   filterBar,
   filterNote,
+  notice = null,
+  replay,
+  onReplayStart,
+  waiting,
   onSelect,
 }: {
   state: DashboardState;
@@ -445,19 +550,37 @@ export function FlowView({
   burst: number;
   filterBar: ReactNode;
   filterNote: string | null;
+  /** Announcement shown above the ticker filters (selected event evicted). */
+  notice?: string | null;
+  replay?: ReplayView;
+  onReplayStart?: () => void;
+  waiting?: WaitingSource;
   onSelect: (id: string) => void;
 }) {
-  const rail = rows.slice(0, RAIL_CALLS);
-  const focus = rows.find((e) => e.id === selected) ?? rows[0];
+  // A replay shows the session's events up to the cursor, newest first like the live rail; the cursor is the focus.
+  const rail = replay ? [...replay.played].reverse().slice(0, RAIL_CALLS) : rows.slice(0, RAIL_CALLS);
+  const focus = replay ? rail[0] : (rows.find((e) => e.id === selected) ?? rows[0]);
   const scope = filterNote ? "filtered sent window" : "sent window";
-  const footer = filterNote
-    ? `${rows.length} of ${state.events.length} sent · filtered`
-    : `${state.events.length} sent`;
+  const footer = replay
+    ? `replay · ${replay.played.length} of ${replay.length} played`
+    : filterNote
+      ? `${rows.length} of ${state.events.length} sent · filtered`
+      : `${state.events.length} sent`;
   return (
     <>
       <main className="stage">
         <CallsRail rail={rail} selected={focus?.id ?? null} arrived={arrived} burst={burst} footer={footer} />
-        <PatchBay state={state} rows={rows} rail={rail} focus={focus} arrived={arrived} scope={scope} />
+        <PatchBay
+          state={state}
+          rows={rows}
+          rail={rail}
+          focus={focus}
+          arrived={arrived}
+          scope={scope}
+          replay={replay}
+          onReplayStart={onReplayStart}
+          waiting={waiting}
+        />
         <ModelRail state={state} />
       </main>
       <Ticker
@@ -467,6 +590,7 @@ export function FlowView({
         arrived={arrived}
         filterBar={filterBar}
         filterNote={filterNote}
+        notice={notice}
         onSelect={onSelect}
       />
     </>

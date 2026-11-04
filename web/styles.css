@@ -60,9 +60,19 @@ button {
 /* ---- shell grid ---- */
 .app {
   display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr) 244px;
+  /* Rows above the stage: header + source health, plus the DEMO band and the exchange source bar when present. */
+  --top: 2;
+  --tick: 244px;
+  grid-template-rows: repeat(var(--top), auto) minmax(0, 1fr) var(--tick);
   height: 100vh;
   min-width: 960px;
+}
+.app.has-demo,
+.app.has-exchange {
+  --top: 3;
+}
+.app.has-demo.has-exchange {
+  --top: 4;
 }
 .demo-band {
   height: 16px;
@@ -284,11 +294,13 @@ button {
   align-items: flex-start;
   overflow: hidden;
 }
-.bay-svg {
-  display: block;
+.bay-main {
   flex: none;
   width: 560px;
-  height: 400px;
+}
+.bay-svg {
+  display: block;
+  width: 560px;
 }
 .focus {
   flex: 1;
@@ -519,6 +531,53 @@ button {
 .ticker {
   min-height: 0;
 }
+.ticker-alerts {
+  display: flex;
+  align-items: center;
+  height: var(--row);
+  min-height: var(--row);
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  font-size: 11px;
+}
+.ticker-alerts-label {
+  flex: none;
+  padding: 0 12px;
+  color: var(--warn);
+  font: 700 11px var(--label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.ticker-alerts-list {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.ticker-alert {
+  padding: 0 12px;
+  border-left: 1px solid var(--line);
+  color: var(--ink);
+}
+.ticker-alert b {
+  color: var(--warn);
+  font-weight: 400;
+}
+.ticker-alerts button {
+  flex: none;
+  height: 100%;
+  padding: 0 12px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: transparent;
+  color: var(--warn);
+  font: 700 11px var(--label);
+  cursor: pointer;
+}
+.ticker-alerts button:hover {
+  background: var(--bg);
+}
 .ticker .panel-title .keys {
   float: right;
 }
@@ -732,7 +791,10 @@ td.c-err {
     display: none;
   }
   .app {
-    grid-template-rows: auto auto auto minmax(0, 1fr) 192px;
+    --tick: 192px;
+  }
+  .transport .rts {
+    display: none;
   }
   .brand-sub {
     display: none;
@@ -1187,4 +1249,333 @@ td.c-err {
 .source-note {
   margin: 0 0 8px;
   font-size: 11px;
+}
+
+/* ---- exchange: source selector, tally, replay, notices (M9) ---- */
+.exchange-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 28px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.bar-title {
+  font: 700 11px var(--label);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.source-bar {
+  display: flex;
+  min-width: 0;
+}
+.source {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  margin-left: -1px;
+  padding: 0 10px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  font: 400 11px var(--mono);
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.source:first-child {
+  margin-left: 0;
+}
+.source b {
+  font: 700 11px var(--label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.source:hover {
+  border-color: var(--dim);
+}
+.source[aria-checked="true"] {
+  position: relative;
+  z-index: 1;
+  background: var(--bg);
+  border-color: var(--amber);
+}
+.source[aria-checked="true"] b {
+  color: var(--amber);
+}
+.source .client {
+  padding: 0 4px;
+  border: 1px solid var(--line);
+  color: var(--dim);
+}
+.source[data-status="live"] .glyph {
+  color: var(--ok);
+}
+.source[data-status="stale"] .glyph,
+.source[data-status="stale"] .status {
+  color: var(--warn);
+}
+.source[data-status="error"] .glyph,
+.source[data-status="error"] .status {
+  color: var(--err);
+}
+.source[data-status="connecting"] .glyph,
+.source[data-status="connecting"] .status {
+  color: var(--dim);
+}
+.viewing {
+  margin-left: auto;
+  color: var(--amber);
+}
+
+/* sparse patch bay: a real per-role tally under the jacks, never invented calls */
+.tally {
+  list-style: none;
+  margin: 0;
+  padding: 0 12px;
+  border-top: 1px solid var(--line);
+}
+.tally li {
+  display: grid;
+  grid-template-columns: 120px repeat(3, 76px);
+  align-items: center;
+  height: 20px;
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--dim);
+}
+.tally .tally-role {
+  color: var(--c, var(--ink));
+  font: 700 11px var(--label);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* replay transport */
+.bay .panel-foot {
+  margin-top: 0;
+}
+.replay-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  margin-top: auto;
+  padding: 4px 12px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+}
+.replay-slot.replaying {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  background: var(--panel);
+  border-top-color: var(--amber);
+}
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.replay-slot button {
+  height: 20px;
+  padding: 0 8px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  font: 400 11px var(--mono);
+  color: var(--ink);
+  cursor: pointer;
+}
+.replay-slot button:hover:not(:disabled) {
+  border-color: var(--dim);
+}
+.replay-slot button:disabled {
+  color: var(--dim);
+  cursor: default;
+}
+.replay-slot button[aria-pressed="true"] {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+.replay-slot .play {
+  min-width: 82px;
+}
+.speeds {
+  display: flex;
+}
+.speeds button {
+  margin-left: -1px;
+  padding: 0 6px;
+}
+.transport .pos {
+  margin-left: 4px;
+  color: var(--amber);
+  white-space: nowrap;
+}
+.transport .stop {
+  margin-left: auto;
+}
+.sample {
+  margin: 0;
+  white-space: normal;
+}
+
+/* notices, orphaned filters, source evidence */
+.notice {
+  margin: 0;
+  padding: 2px 12px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  color: var(--amber);
+  font-size: 11px;
+}
+.filters > * {
+  flex-shrink: 0;
+}
+.filters select {
+  flex-shrink: 1;
+  min-width: 56px;
+}
+.filters .orphan {
+  color: var(--amber);
+}
+.c-src {
+  width: 64px;
+}
+.call-src {
+  color: var(--amber);
+}
+
+@media (max-width: 1280px) {
+  .bar-title,
+  .source .client,
+  .source .src-detail,
+  #flt-client {
+    display: none;
+  }
+  .source {
+    padding: 0 8px;
+  }
+  .viewing {
+    flex: none;
+  }
+  .filters {
+    gap: 4px;
+  }
+  .filters input[type="search"] {
+    width: 96px;
+  }
+}
+
+/* ---- analytics drawers: alerts, quota, presets (M9) ---- */
+.badge {
+  margin-left: 6px;
+  padding: 0 4px;
+  border: 1px solid var(--warn);
+  color: var(--warn);
+  font: 700 11px var(--mono);
+  letter-spacing: 0;
+}
+.period {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 4px 0 8px;
+  font-size: 11px;
+}
+.period label {
+  color: var(--dim);
+}
+.period select,
+.period input {
+  height: 20px;
+  padding: 0 4px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  color: var(--ink);
+  font: 400 11px var(--mono);
+}
+.quota-table td.win {
+  min-width: 200px;
+  white-space: normal;
+}
+.win-line {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.win-note {
+  font-size: 11px;
+}
+.quota-bar {
+  display: block;
+  margin: 3px 0 2px;
+}
+.quota-bar .track {
+  fill: none;
+  stroke: var(--line);
+}
+.quota-bar.estimate .fill {
+  fill: var(--teal);
+}
+.quota-bar.partial .fill {
+  fill: none;
+  stroke: var(--amber);
+}
+.evidence {
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+}
+.evidence li {
+  padding: 2px 0;
+  border-bottom: 1px solid var(--line);
+}
+.presets-table td.name {
+  max-width: 110px;
+}
+
+/* ---- report export drawer ---- */
+.downloads {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+}
+.dl {
+  display: inline-block;
+  padding: 3px 10px;
+  border: 1px solid var(--amber);
+  color: var(--amber);
+  font: 700 11px var(--label);
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+a.dl:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+.dl.off {
+  border-color: var(--line);
+  color: var(--dim);
+  cursor: not-allowed;
+}
+.drawer-head .close {
+  flex: none;
+  white-space: nowrap;
+}
+@media (max-width: 1280px) {
+  .drawer .tabs button {
+    padding: 0 6px;
+  }
 }

@@ -5,6 +5,26 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+### Added in 0.2.0
+- M7: read-only headless agents, SSH-first remote sources, explicit authenticated non-loopback binds, bounded HTTP/SSE collection, reconnect health and namespaced source identities.
+- M8: user-configured subscription quota estimates, evidence-aware preset comparisons, sampled slim config timelines, debounced alerts and opt-in desktop notifications.
+- M9: source selection and health, exchange analytics panels and retained-session replay synchronized with Call in focus.
+- M10: source/range-aware Markdown and CSV reports through CLI and GET downloads, with formula escaping and explicit incomplete-range coverage.
+
+### Security in 0.2.0
+- Refuse wildcard agent binds, require strong bearer tokens outside loopback, reject browser-origin agent requests and prevent redirect/proxy credential forwarding.
+- Bound remote records, snapshots and stream frames; isolate over-budget sources without starving healthy ones. Tokens remain server-side environment references, never browser state.
+
+### Fixed in 0.2.0
+- M12: use OS temporary directories in tests instead of assuming the agent's pre-created `/tmp/opencode`, so clean CI environments can run the unchanged assertions.
+- M11: expose active alert evidence directly in the ticker, scoped to the selected source and linked to the existing alert panel.
+- Support differing SSH tunnel ports in the agent Host check and reject incompatible agent retention settings before startup.
+- Verify installed OpenCode 2.2.5 stats output in an isolated empty profile; retain supported `--standalone` and remove unsupported `OPENCODE_PURE`.
+- Restore focus on selected-event eviction, retain orphaned filter choices, expose rejected UI payload counts and adapt sparse patch bays.
+
+### Evidence limits in 0.2.0
+- Missing execution, fallback and per-message usage remain unknown. Preset-file samples are not proof of runtime selection; classifier rate limits are distinct from execution-provider limits. No subscription limits are invented.
+
 ### Added
 - M1: validated, unknown-field-preserving parsers for observe, route, permissions and stats; malformed JSONL counting and fixture tests.
 - M2: deterministic message joins, context agreement matrix and confidence histogram, usage breakdowns, permission/error rollups and honest unavailable-data readouts.

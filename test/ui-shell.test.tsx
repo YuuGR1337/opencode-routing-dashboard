@@ -193,8 +193,9 @@ test("DEMO marker only appears when demo is set; link state only when known", as
 
 test("drawer navigation is enabled and points at its drawer (implemented in M4)", async () => {
   const html = render(await fixtureState());
-  for (const name of ["Agreement", "Usage", "Errors", "History"]) expect(html).toContain(name);
-  expect(html.match(/<button[^>]*data-drawer[^>]*>/g)).toHaveLength(4);
+  for (const name of ["Agreement", "Usage", "Errors", "History", "Alerts", "Quota", "Presets", "Export"])
+    expect(html).toContain(name);
+  expect(html.match(/<button[^>]*data-drawer[^>]*>/g)).toHaveLength(8);
   expect(html).not.toMatch(/<button[^>]*data-drawer[^>]*disabled/);
   expect(html).toContain('aria-controls="drawer-agreement"');
 });

@@ -37,3 +37,18 @@ export const trunc = (s: string | null, n: number) => (s === null ? "—" : s.le
 export const pct = (v: number | null) => (v === null ? "—" : `${Math.round(v)}%`);
 /** Cost as reported by opencode. 0 is shown as reported, never replaced by an estimate. */
 export const fmtCost = (cost: number) => (cost === 0 ? "0 reported" : `$${cost.toFixed(2)}`);
+/** Wall-clock time of day, seconds precision. Unparsable input is shown as received. */
+export function fmtClock(iso: string) {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+/** Federation namespaces sessions as a JSON pair [sourceId, session]; show the session, keep the raw id in titles. */
+export function fmtSession(session: string) {
+  if (!session.startsWith('["')) return session;
+  try {
+    const pair: unknown = JSON.parse(session);
+    return Array.isArray(pair) && pair.length === 2 && typeof pair[1] === "string" ? pair[1] : session;
+  } catch {
+    return session;
+  }
+}

@@ -1,0 +1,2 @@
+{"ts":"2026-11-04T02:00:40.000Z","session":"ses_pc_1","commands":["ls /tmp"],"scores":{"reversible":0.06,"routine":0.9},"verdict":"allow","latency_ms":910}
+{"ts":"2026-11-04T02:02:05.000Z","session":"ses_pc_2","commands":["rm -r build"],"verdict":"ask:gate","latency_ms":0}

@@ -1,7 +1,7 @@
 # SPEC
 
 ## Goal
-Local, real-time view of OpenCode routing for any user. Read-only over local files and the `opencode` CLI.
+Local-first, real-time view of OpenCode routing for any user. Read-only over local files, the `opencode` CLI and explicitly configured remote agents; the dashboard itself stays on loopback.
 
 ## Functional requirements
 1. **Live prompt flow**: per user message: time, session, Jev suggestion (role, confidence, needs_oracle), route decision (injected/skipped + reason), agent that ran, model + variant, latency.
@@ -16,7 +16,7 @@ Local, real-time view of OpenCode routing for any user. Read-only over local fil
 The UI follows [DESIGN.md](DESIGN.md) (switchboard concept, max density, anti-slop rules). Deviations must be recorded there.
 
 ## Non-functional
-- Bind 127.0.0.1 only; no auth needed; no outbound network.
+- Dashboard binds 127.0.0.1 only. Agents default to loopback/SSH; explicit non-loopback binds require tokens. Only explicitly configured source endpoints may receive outbound connections. No telemetry or unrelated destinations, and no wildcard binds.
 - Start < 1 s on 10k log lines; tolerate missing files.
 - Config via env/flags; Linux + macOS.
 
@@ -75,3 +75,30 @@ No explicit fallback event in logs; agent-per-step is not in Jev logs (only the 
 - `snapshot` is an explicit one-shot writer; the supplied optional user timer schedules it weekly. The HTTP server reads snapshots but never writes them.
 - Publish validated snapshots atomically from a private temporary file without replacing an existing destination. Invalid stats never produce a snapshot.
 - History loading accepts only valid date-named regular files, ignores temporary files and rejects symlinks. Keep at most 52 newest valid snapshots with per-file and total byte budgets. The API exposes malformed/omitted snapshot counts and source status rather than silently claiming complete history.
+
+## v0.2 acceptance contract (M7 onward)
+
+### Remote sources
+- Headless `agent` reads the same JSONL, stats and snapshots, exposing bounded HTTP/SSE only. It serves no UI and cannot recursively configure remote sources. All listeners preserve Host checks, GET/HEAD-only access, client/payload limits and no CORS; dashboard retains CSP.
+- Default PC agent bind is 127.0.0.1. A Mac uses `ssh -N -L 4319:127.0.0.1:4318 pc` and configures `http://127.0.0.1:4319`. Optional Tailscale requires an explicit concrete address and mandatory bearer token; wildcard addresses are forbidden. Tokens may also protect loopback, which is accessible to other local users.
+- An explicitly selected JSON configuration contains N sources with unique IDs, labels, endpoints, optional client/directory rules and token environment-variable references. Never store tokens inline, read dotenv/credential files, expose secrets to the browser, follow redirects or send data to unconfigured endpoints.
+- Agents expose parsed source records as bounded full replacement envelopes with process epoch and sequence. Dashboard revalidates inputs, namespaces event/session identities by configured source ID and never joins sources. Gaps/restarts reconnect to a complete snapshot; no durable SSE replay is promised.
+- One connection per source; bounded exponential retry with jitter, idle/connect timeouts and abortable shutdown. Disconnected sources retain last data marked stale with last-seen/retry health. Source count, SSE events and bodies are bounded. Per-source detail budgets prevent starvation.
+- Fail closed before remote requests if HTTP_PROXY, HTTPS_PROXY or ALL_PROXY (upper/lowercase) is configured. Do not assume NO_PROXY prevents Bun from forwarding bearer headers; do not mutate the process environment as a bypass.
+- Configured source selection includes PC, Orca, local and combined views, health and per-source filters. Distinct stats ranges remain distinct: never manufacture cross-source financial/quota totals or silently correct remote timestamps.
+
+### Evidence and analytics
+- Optional enrichment fields in anonymized fixtures are a dashboard contract, not a claim that standard Jev/OpenCode emits them: `client`, `preset`, and `execution` with explicit model/provider plus optional tokens/cost/fallback/status/error. They are validated before attribution. Standard Jev classifier fields alone never establish execution metrics.
+- Session directory/worktree comes from observed metadata; Orca/TUI/service labels require explicit metadata or configured source/directory classification, labeled as such. Otherwise show unknown. Installed Orca paths/launch evidence must be verified and documented; unverified paths remain configurable.
+- Read the active slim preset only from an explicitly selected non-secret config path. Timestamp changes while monitoring; never assign the current preset to historical events. Compare recorded preset labels or actually observed intervals, showing coverage.
+- New panels compare presets over a period: context agreement, latency p50/p95, errors, fallback, tokens and cost. Missing execution/fallback/per-message usage evidence stays unavailable with a reason; classifier identity is not execution identity and aggregate stats cannot be allocated to calls/presets.
+- Quota subscriptions (Claude Pro, ChatGPT Plus, Grok or custom labels) have user-supplied limits only, never invented defaults. Rolling 5 h and weekly token/message estimates require timestamped attributable records or stats exactly covering the requested window/metric. Partial/unknown evidence is explicit; never difference sliding stats or sum overlapping snapshots. Subscription cost zero is not quota zero.
+- Alerts derive only from explicit rate-limit, quota-exhaustion or fallback evidence, with configurable hold/debounce and minimum repeat interval. Unknown never fires. UI ticker/panel are always available; desktop notifications are opt-in (`notify-send` Linux, `osascript` macOS), argument-array based, and failures cannot crash ingestion.
+
+### Replay, exports and existing issues
+- The ticker exposes active alert evidence directly (source and precise classifier/provider kind), in addition to the alert panel and navigation badge. No idle animation or invented missing signal is added.
+- Replay is a client cursor over a retained past session: play/pause/speed, event stepping, timeline and Call in focus share one cursor. Expose retention/omission limits; replay is not durable transport history.
+- UI GET downloads and CLI `export --from --to --format md|csv` report validated ranges. Keep source identity, range and coverage; exclude out-of-range events and label separately ranged stats. Unknown CSV cells are empty with status/reason. Escape formula-leading cells. Server downloads never write report files.
+- Restore focus after selected-event eviction; retain/reconcile orphaned filter options; visibly count rejected browser payloads; adapt sparse patch bay spacing without invented calls. Verify real OpenCode 2.2.5 stats flags and remove unsupported flags/environment controls.
+- Tests first; multi-source PC + Orca + local fixtures; smoke tests per view; Playwright screenshots at 1440×900 and 1024×768. Typecheck/lint/tests/build and CI must pass. PR distinguishes real runtime evidence from fixtures and explicitly declares macOS unverified unless exercised.
+- Test temporary directories must use the operating system's available temporary root, not depend on this development environment's pre-created `/tmp/opencode` directory.
