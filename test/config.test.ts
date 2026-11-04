@@ -29,6 +29,15 @@ test("config defaults and validates ports", () => {
 test("flag values preserve equals signs", () => {
   expect(loadConfig({}, ["--stats-file=a=b.json"]).statsFile).toBe("a=b.json");
 });
+test("local source config supports env and overrides via flag", () => {
+  expect(loadConfig({}, []).localSourceConfigFile).toBeUndefined();
+  expect(loadConfig({ ORD_LOCAL_SOURCE_CONFIG: "~/local.json" }, []).localSourceConfigFile).toBe(
+    join(homedir(), "local.json"),
+  );
+  expect(
+    loadConfig({ ORD_LOCAL_SOURCE_CONFIG: "env.json" }, ["--local-source-config=chosen.json"]).localSourceConfigFile,
+  ).toBe("chosen.json");
+});
 test("demo is explicit, validated and overridden by flags", () => {
   expect(loadConfig({}, []).demo).toBe(false);
   expect(loadConfig({ ORD_DEMO: "true" }, []).demo).toBe(true);

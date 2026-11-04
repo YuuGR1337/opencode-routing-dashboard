@@ -88,6 +88,7 @@ No explicit fallback event in logs; agent-per-step is not in Jev logs (only the 
 - Configured source selection includes PC, Orca, local and combined views, health and per-source filters. Distinct stats ranges remain distinct: never manufacture cross-source financial/quota totals or silently correct remote timestamps.
 
 ### Evidence and analytics
+- Optional enrichment fields in anonymized fixtures are a dashboard contract, not a claim that standard Jev/OpenCode emits them: `client`, `preset`, and `execution` with explicit model/provider plus optional tokens/cost/fallback/status/error. They are validated before attribution. Standard Jev classifier fields alone never establish execution metrics.
 - Session directory/worktree comes from observed metadata; Orca/TUI/service labels require explicit metadata or configured source/directory classification, labeled as such. Otherwise show unknown. Installed Orca paths/launch evidence must be verified and documented; unverified paths remain configurable.
 - Read the active slim preset only from an explicitly selected non-secret config path. Timestamp changes while monitoring; never assign the current preset to historical events. Compare recorded preset labels or actually observed intervals, showing coverage.
 - New panels compare presets over a period: context agreement, latency p50/p95, errors, fallback, tokens and cost. Missing execution/fallback/per-message usage evidence stays unavailable with a reason; classifier identity is not execution identity and aggregate stats cannot be allocated to calls/presets.

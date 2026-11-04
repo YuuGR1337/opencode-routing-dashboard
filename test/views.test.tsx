@@ -381,9 +381,9 @@ test("FlowView says when a filter hides every row", async () => {
   expect(html).not.toContain("silent exchange");
 });
 
-test("the shell enables the four drawers and mounts the filter bar", async () => {
+test("the shell enables every drawer and mounts the filter bar", async () => {
   const html = markup(<DashboardShell state={await fixtureState()} />);
-  expect(html.match(/<button[^>]*data-drawer="[a-z]+"[^>]*>/g)).toHaveLength(4);
+  expect(html.match(/<button[^>]*data-drawer="[a-z]+"[^>]*>/g)).toHaveLength(8);
   expect(html).not.toMatch(/<button[^>]*data-drawer[^>]*disabled/);
   expect(html).toContain('aria-expanded="false"');
   expect(html).toContain('aria-label="search"');

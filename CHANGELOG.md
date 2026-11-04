@@ -6,6 +6,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 ## [Unreleased]
 
 ### Added in 0.2.0
+- M9: multi-source exchange selector, configured local/remote client provenance, analytics panels, synchronized replay and GET Markdown/CSV reports with coverage and formula safety.
+- M9: fix eviction focus, orphan filters, rejected payload counter and sparse bay layout; add source-backed demo and both-size screenshots.
 - M8: evidence-aware quota/preset analytics with explicit source coverage, sampled config timelines, cached retained-state reducers and debounced classifier/provider alerts with opt-in desktop delivery.
 - M7: read-only HTTP/SSE agents, explicit remote source configuration, SSH-first authenticated transport, per-source health/retry and configured Orca directory provenance.
 

@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 
 /** The JSON configuration is an array of sources; tokens are environment-variable references. */
 export type DirectoryRule = { prefix: string; client: "Orca" | "TUI" | "service"; label?: string };
+export type LocalSourceConfig = { client?: "Orca" | "TUI" | "service" | "unknown"; directoryRules?: DirectoryRule[] };
 export type SourceConfig = {
   id: string;
   label: string;
@@ -80,7 +81,7 @@ const credentialPath = (path: string) =>
   resolve(path)
     .split(/[\\/]/)
     .some((part) => /^(?:\.ssh|\.env.*|auth\.json|service\.json)$/i.test(part));
-export async function loadSourceConfig(path: string): Promise<SourceConfig[]> {
+async function readConfig(path: string): Promise<unknown> {
   if (credentialPath(path)) throw new Error("Invalid configuration path");
   const actual = await realpath(path);
   if (credentialPath(actual)) throw new Error("Invalid configuration path");
@@ -96,8 +97,26 @@ export async function loadSourceConfig(path: string): Promise<SourceConfig[]> {
       used += bytesRead;
     }
     if (used > 256 * 1024) throw new Error("Invalid configuration file");
-    return parseSourceConfig(JSON.parse(buffer.subarray(0, used).toString("utf8")));
+    return JSON.parse(buffer.subarray(0, used).toString("utf8"));
   } finally {
     await file.close();
   }
+}
+export async function loadSourceConfig(path: string): Promise<SourceConfig[]> {
+  return parseSourceConfig(await readConfig(path));
+}
+export async function loadLocalSourceConfig(path: string): Promise<LocalSourceConfig> {
+  const value = await readConfig(path);
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    Object.keys(value).some((key) => key !== "client" && key !== "directoryRules")
+  )
+    throw new Error("Invalid source configuration");
+  const source = parseSourceConfig([{ id: "local-meta", label: "Local", endpoint: "http://127.0.0.1", ...value }])[0]!;
+  return {
+    ...(source.client !== undefined && { client: source.client }),
+    ...(source.directoryRules !== undefined && { directoryRules: source.directoryRules }),
+  };
 }

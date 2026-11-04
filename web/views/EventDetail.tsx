@@ -1,4 +1,5 @@
 import type { FlowEvent } from "../../src/core/aggregate";
+import { clientText, evidence } from "../exchange";
 import { fmt2, fmtTs } from "./format";
 
 export function EventDetail({
@@ -14,9 +15,18 @@ export function EventDetail({
   retained?: number;
   onSelect?: (id: string) => void;
 }) {
+  const tag = evidence(event);
+  const tagged = tag.sourceId !== undefined || tag.client !== undefined || tag.directory !== undefined;
   const fields: [string, string | number | null, boolean][] = [
     ["ts", event.ts, false],
     ["session", event.session, false],
+    ...(tagged
+      ? ([
+          ["sourceId", tag.sourceId ?? null, false],
+          ["client", clientText(tag), false],
+          ["directory", tag.directory ?? null, false],
+        ] as [string, string | null, boolean][])
+      : []),
     ["message", event.message, false],
     ["prompt", event.prompt, false],
     ["suggestion", event.suggestion, false],

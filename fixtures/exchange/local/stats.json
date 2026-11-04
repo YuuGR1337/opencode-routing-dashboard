@@ -1,0 +1,62 @@
+{
+ "range": {
+  "from": 1793500489373,
+  "to": 1793758556405
+ },
+ "sessions": 6,
+ "subagents": 41,
+ "prompts": 14,
+ "steps": 310,
+ "tokens": {
+  "input": 25037910,
+  "output": 1668163,
+  "reasoning": 2598052,
+  "cache": {
+   "read": 581379016,
+   "write": 6117844
+  }
+ },
+ "cost": 4.2,
+ "tools": {
+  "mode": "detail",
+  "totals": {
+   "calls": 7282,
+   "succeeded": 7195,
+   "failed": 87,
+   "unfinished": 0
+  },
+  "usage": [
+   {
+    "name": "shell",
+    "calls": 2857,
+    "succeeded": 2836,
+    "failed": 21,
+    "unfinished": 0,
+    "durationP50": 123
+   }
+  ]
+ },
+ "activeDays": 7,
+ "streak": 7,
+ "activity": [],
+ "models": [
+  {
+   "model": {
+    "id": "grok-4.7",
+    "providerID": "xai",
+    "variant": "high"
+   },
+   "steps": 310,
+   "tokens": {
+    "input": 23328656,
+    "output": 826515,
+    "reasoning": 2101026,
+    "cache": {
+     "read": 434342016,
+     "write": 0
+    }
+   },
+   "cost": 4.2
+  }
+ ]
+}

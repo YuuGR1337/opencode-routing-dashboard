@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { aggregate } from "../src/core/aggregate";
 import { DashboardShell } from "./App";
-import { applyLiveEvent, decodeEnvelope, type Envelope } from "./live";
+import { applyLiveEvent, decodeEnvelope, decodeMessage, type Envelope } from "./live";
 import "./styles.css";
 
 const empty = aggregate({
@@ -16,11 +16,14 @@ const empty = aggregate({
 function LiveDashboard() {
   const [live, setLive] = useState<{ envelope: Envelope | null; sseSeen: boolean }>({ envelope: null, sseSeen: false });
   const [connected, setConnected] = useState(false);
+  // Payloads that failed validation and were dropped. Late or duplicate updates are not rejections.
+  const [rejected, setRejected] = useState(0);
   useEffect(() => {
     let active = true;
-    const accept = (value: unknown, kind: "http" | "snapshot" | "delta") => {
-      const next = decodeEnvelope(value);
-      if (active && next) setLive((current) => applyLiveEvent(current, next, kind));
+    const accept = (next: Envelope | null, kind: "http" | "snapshot" | "delta") => {
+      if (!active) return;
+      if (next) setLive((current) => applyLiveEvent(current, next, kind));
+      else setRejected((n) => n + 1);
     };
     const controller = new AbortController();
     fetch("/api/state", { signal: controller.signal })
@@ -28,7 +31,7 @@ function LiveDashboard() {
         if (!response.ok) throw new Error("Snapshot unavailable");
         return response.json();
       })
-      .then((value) => accept(value, "http"))
+      .then((value) => accept(decodeEnvelope(value), "http"))
       .catch(() => {});
     const events = new EventSource("/api/events");
     events.onopen = () => {
@@ -38,11 +41,7 @@ function LiveDashboard() {
       if (active) setConnected(false);
     };
     const receive = (kind: "snapshot" | "delta") => (event: MessageEvent) => {
-      try {
-        accept(JSON.parse(event.data), kind);
-      } catch {
-        /* Ignore malformed events. */
-      }
+      accept(decodeMessage(String(event.data)), kind);
     };
     events.addEventListener("snapshot", receive("snapshot"));
     events.addEventListener("delta", receive("delta"));
@@ -53,7 +52,12 @@ function LiveDashboard() {
     };
   }, []);
   return (
-    <DashboardShell state={live.envelope?.state ?? empty} demo={live.envelope?.demo ?? false} connected={connected} />
+    <DashboardShell
+      state={live.envelope?.state ?? empty}
+      demo={live.envelope?.demo ?? false}
+      connected={connected}
+      rejected={rejected}
+    />
   );
 }
 

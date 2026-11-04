@@ -5,10 +5,11 @@ import type { Config } from "../config";
 import { type DashboardInput, MAX_PAYLOAD_BYTES } from "../core/aggregate";
 import { createAnalyticsCache } from "../core/analytics-cache";
 import { type FederatedState, type FederationSource, federate } from "../core/federation";
+import { buildReport, formatReport, parseReportRange } from "../core/reports";
 import { loadAnalyticsSettings } from "../sources/analytics";
 import { startCollector } from "../sources/collector";
 import { startRemote } from "../sources/remote";
-import { loadSourceConfig } from "../sources/source-config";
+import { type LocalSourceConfig, loadLocalSourceConfig, loadSourceConfig } from "../sources/source-config";
 import { startAnalyticsEngine } from "./analytics";
 
 export async function startApp(
@@ -24,6 +25,14 @@ export async function startApp(
   const analyticsCache = createAnalyticsCache();
   const remoteSources: FederationSource[] = [];
   const remotes: ReturnType<typeof startRemote>[] = [];
+  let localMetadata: LocalSourceConfig = {};
+  const localSource = (): FederationSource => ({
+    id: "local",
+    label: "Local",
+    status: "live",
+    input,
+    ...localMetadata,
+  });
   let seq = 0;
   let ready = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -34,7 +43,7 @@ export async function startApp(
   const publish = () => {
     timer = undefined;
     state = {
-      ...federate([{ id: "local", label: "Local", status: "live", input }, ...remoteSources]),
+      ...federate([localSource(), ...remoteSources]),
       ...(analytics ? { analytics: analytics.snapshot() } : {}),
     };
     seq++;
@@ -60,6 +69,7 @@ export async function startApp(
       ? await loadAnalyticsSettings(config.analyticsConfigFile)
       : { quotas: [], alerts: { holdMs: 0, repeatMs: 60000, activeMs: 60000, desktop: false } };
     const configured = config.configFile ? await loadSourceConfig(config.configFile) : [];
+    localMetadata = config.localSourceConfigFile ? await loadLocalSourceConfig(config.localSourceConfigFile) : {};
     const tokens = configured.map((source) => {
       const token = source.tokenEnv ? process.env[source.tokenEnv] : undefined;
       if (source.tokenEnv && !token) throw new Error("Missing configured source token");
@@ -84,12 +94,12 @@ export async function startApp(
         status: "connecting",
         input: null,
       });
-    state = federate([{ id: "local", label: "Local", status: "live", input }, ...remoteSources]);
+    state = federate([localSource(), ...remoteSources]);
     analytics = startAnalyticsEngine(
       analyticsSettings,
       () => {
         const epochs = new Set<string>();
-        return [{ id: "local", status: "live" as const, input }, ...remoteSources].map((source) => {
+        return [localSource(), ...remoteSources].map((source) => {
           const epoch = "epoch" in source ? source.epoch : undefined;
           const duplicate = !!epoch && epochs.has(epoch);
           if (epoch && !duplicate) epochs.add(epoch);
@@ -159,6 +169,47 @@ export async function startApp(
         if (request.method !== "GET" && request.method !== "HEAD")
           return new Response("Method not allowed", { status: 405, headers: { ...headers, Allow: "GET, HEAD" } });
         const url = new URL(request.url);
+        if (url.pathname === "/api/export") {
+          const params = url.searchParams;
+          if (
+            ["from", "to", "format"].some((key) => params.getAll(key).length !== 1) ||
+            params.getAll("source").length > 1
+          )
+            return new Response("Invalid report parameters", { status: 400, headers });
+          const from = params.get("from");
+          const to = params.get("to");
+          const format = params.get("format");
+          if (!from || !to || (format !== "md" && format !== "csv"))
+            return new Response("Invalid report parameters", { status: 400, headers });
+          let range: ReturnType<typeof parseReportRange>;
+          try {
+            range = parseReportRange(from, to);
+          } catch {
+            return new Response("Invalid report range", { status: 400, headers });
+          }
+          const sourceId = params.get("source");
+          const sources =
+            sourceId === null
+              ? state.exchange.sources
+              : state.exchange.sources.filter((source) => source.id === sourceId);
+          if (!sources.length) return new Response("Unknown source", { status: 400, headers });
+          if (sources.some((source) => source.status !== "live" || !source.state))
+            return new Response("Source unavailable", { status: 503, headers });
+          const report = buildReport(
+            sources.map((source) => ({ id: source.id, label: source.label, state: source.state! })),
+            range,
+          );
+          const body = formatReport(report, format);
+          if (encoder.encode(body).byteLength > maxPayload)
+            return new Response("Report too large", { status: 503, headers });
+          return new Response(request.method === "HEAD" ? null : body, {
+            headers: {
+              ...headers,
+              "Content-Type": format === "csv" ? "text/csv; charset=utf-8" : "text/markdown; charset=utf-8",
+              "Content-Disposition": `attachment; filename="routing-report.${format}"`,
+            },
+          });
+        }
         if (url.pathname === "/api/state") {
           const body = JSON.stringify({ ...state, seq, demo: config.demo });
           if (encoder.encode(body).byteLength > maxPayload)

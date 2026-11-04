@@ -1,16 +1,24 @@
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { DashboardState, FlowEvent } from "../src/core/aggregate";
+import { alertsView, DEFAULT_PERIOD, type Period, presetView, quotaView } from "./analytics";
 import { livePrompts } from "./clock";
+import { COMBINED, type ExchangeState, resolveView } from "./exchange";
+import { exportPlan } from "./export";
 import { EMPTY_FILTERS, type FlowFilters, filterEvents } from "./filters";
+import { nextSpeed, replayCoverage, replayDelay, type Speed, sessionTimeline, stepIndex } from "./replay";
+import { nearestSurvivor, type OptionMemory, rememberOptions, sameOptions } from "./selection";
 import { AgreementView } from "./views/AgreementView";
+import { AlertsPanel, PresetsPanel, QuotaPanel } from "./views/AnalyticsViews";
 import { ErrorsView } from "./views/ErrorsView";
 import { EventDetail } from "./views/EventDetail";
+import { ExportPanel } from "./views/ExportView";
 import { FilterBar, isFiltered } from "./views/FilterBar";
-import { FlowView } from "./views/FlowView";
-import { fmtNum, fmtTs, pct, RENDER_LIMIT, SOURCES, STATUS_CLASS, STATUS_GLYPH } from "./views/format";
+import { FlowView, type ReplayView } from "./views/FlowView";
+import { fmtClock, fmtNum, fmtTs, pct, RENDER_LIMIT, SOURCES, STATUS_CLASS, STATUS_GLYPH } from "./views/format";
 import { HistoryView } from "./views/HistoryView";
 import { Drawer } from "./views/parts";
+import { SourceBar } from "./views/SourceBar";
 import { UsageView } from "./views/UsageView";
 
 export { EventDetail };
@@ -22,16 +30,26 @@ const DRAWERS = [
   { name: "usage", title: "Usage", scope: "opencode stats range · aggregate" },
   { name: "errors", title: "Errors", scope: "retained window · tool failures use the stats range" },
   { name: "history", title: "History", scope: "weekly stats snapshots" },
+  { name: "alerts", title: "Alerts", scope: "explicit rate-limit, quota and fallback evidence" },
+  { name: "quota", title: "Quota", scope: "your configured limits · rolling 5 h and weekly estimates" },
+  { name: "presets", title: "Presets", scope: "recorded or observed preset intervals · chosen period" },
+  { name: "export", title: "Export", scope: "Markdown or CSV report · selected source and period" },
 ] as const;
 export type DrawerName = (typeof DRAWERS)[number]["name"];
 
-function useArrivals(events: FlowEvent[], ready: boolean) {
+function useArrivals(events: FlowEvent[], ready: boolean, viewId: string) {
   const seen = useRef<Set<string> | null>(null);
+  const lastView = useRef(viewId);
   const stamps = useRef<number[]>([]);
   const timers = useRef<{ arrive?: ReturnType<typeof setTimeout>; burst?: ReturnType<typeof setTimeout> }>({});
   const [arrived, setArrived] = useState<ReadonlySet<string>>(new Set());
   const [burst, setBurst] = useState(0);
   useEffect(() => {
+    // Switching source is a new baseline, never a burst of arrivals.
+    if (lastView.current !== viewId) {
+      lastView.current = viewId;
+      seen.current = null;
+    }
     // Until the first real snapshot arrives (sources known), nothing is an arrival. The first snapshot is the baseline.
     if (!ready) {
       seen.current = null;
@@ -57,7 +75,7 @@ function useArrivals(events: FlowEvent[], ready: boolean) {
     setArrived(new Set(fresh));
     clearTimeout(timers.current.arrive);
     timers.current.arrive = setTimeout(() => setArrived(new Set()), 1500);
-  }, [events, ready]);
+  }, [events, ready, viewId]);
   useEffect(
     () => () => {
       clearTimeout(timers.current.arrive);
@@ -101,7 +119,19 @@ function Readout({
   );
 }
 
-function SourceHealth({ state, drawers }: { state: DashboardState; drawers: ReactNode }) {
+function SourceHealth({
+  state,
+  drawers,
+  rejected,
+  staleNote,
+  combinedExchange,
+}: {
+  state: DashboardState;
+  drawers: ReactNode;
+  rejected?: number;
+  staleNote: string | null;
+  combinedExchange: boolean;
+}) {
   const { sources, statsStatus, errors, window: win } = state;
   const m = errors.malformed;
   return (
@@ -124,19 +154,29 @@ function SourceHealth({ state, drawers }: { state: DashboardState; drawers: Reac
           );
         })
       ) : (
-        <span className="src dim">○ waiting for sources</span>
+        <span className="src dim">○ {combinedExchange ? "source health above" : "waiting for sources"}</span>
       )}
       <span className={`src ${statsStatus ? STATUS_CLASS[statsStatus.status] : "dim"}`}>
         <span className="glyph" aria-hidden="true">
           {statsStatus ? STATUS_GLYPH[statsStatus.status] : "○"}
         </span>
-        {`stats ${statsStatus?.status ?? "pending"}`}
+        {`stats ${statsStatus?.status ?? (combinedExchange ? "per source" : "pending")}`}
         {statsStatus?.detail ? ` · ${statsStatus.detail}` : ""}
       </span>
+      {staleNote ? <span className="src warn">{staleNote}</span> : null}
       <span className="src dim">
         {`malformed (process lifetime) observe ${m.observe} · route ${m.route} · permissions ${m.permissions}`}
       </span>
       <span className="src dim">{`permissions newest ${win.permissions.sent} of ${win.permissions.retained} retained`}</span>
+      {rejected === undefined ? null : (
+        <span
+          className={`src ${rejected > 0 ? "warn" : "dim"}`}
+          data-rejected={rejected}
+          title="Browser payloads that failed validation and were dropped since this page loaded"
+        >
+          {`rejected payloads ${rejected}`}
+        </span>
+      )}
       <span className="spacer">{drawers}</span>
     </div>
   );
@@ -149,39 +189,94 @@ const isTyping = (t: EventTarget | null) => {
   );
 };
 
+type ReplayState = { session: string; cursor: string; playing: boolean; speed: Speed };
+const seedReplay = (events: FlowEvent[]): ReplayState | null => {
+  const focus = events[events.length - 1];
+  const first = focus ? sessionTimeline(events, focus.session)[0] : undefined;
+  return focus && first ? { session: focus.session, cursor: first.id, playing: false, speed: 1 } : null;
+};
+const focusTicker = () => setTimeout(() => document.getElementById("ticker")?.focus(), 0);
+
 export function DashboardShell({
   state,
   demo = false,
   connected,
+  rejected,
   initialDrawer = null,
+  initialView = COMBINED,
+  initialReplay = false,
+  initialPeriod = DEFAULT_PERIOD,
   now: nowOverride,
 }: {
-  state: DashboardState;
+  state: ExchangeState;
   demo?: boolean;
   connected?: boolean;
+  /** Browser payloads dropped by validation since page load. Omit to hide the counter. */
+  rejected?: number;
   /** Opens a drawer on first render (screenshots and smoke tests). */
   initialDrawer?: DrawerName | null;
+  /** Source shown on first render (screenshots and smoke tests). */
+  initialView?: string;
+  /** Starts a replay of the newest call's session on first render (screenshots and smoke tests). */
+  initialReplay?: boolean;
+  /** Period of the preset comparison on first render (screenshots and smoke tests). */
+  initialPeriod?: Period;
   /** Fixed page clock for tests and screenshots. Without it the clock ticks every 5 s. */
   now?: number;
 }) {
-  const [selected, setSelected] = useState<string | null>(null);
+  const [viewId, setViewId] = useState(initialView);
+  const view = resolveView(state, viewId);
+  const vs = view.state;
+  const [replay, setReplay] = useState<ReplayState | null>(() => (initialReplay ? seedReplay(vs.events) : null));
+  const [selected, setSelected] = useState<string | null>(() =>
+    initialReplay ? (seedReplay(vs.events)?.cursor ?? null) : null,
+  );
   const [detailOpen, setDetailOpen] = useState(false);
   const [drawer, setDrawer] = useState<DrawerName | null>(initialDrawer);
   const [filters, setFilters] = useState<FlowFilters>(EMPTY_FILTERS);
+  const [known, setKnown] = useState<OptionMemory | undefined>(undefined);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [period, setPeriod] = useState<Period>(initialPeriod);
   const now = useNow(nowOverride);
-  const { arrived, burst } = useArrivals(state.events, state.sources !== null);
+  // Alert evidence is cheap and drives the header badge; quota and preset views are computed only while open.
+  const alerts = useMemo(() => alertsView(state, view.id, now), [state, view.id, now]);
+  const { arrived, burst } = useArrivals(vs.events, vs.sources !== null, view.id);
 
   // Time ranges and prompts/min follow the page clock, so they expire even when no update arrives.
-  const matched = filterEvents(state.events, filters, now);
-  const prompts = livePrompts(state.events, state.window.events.omitted, now);
+  const matched = filterEvents(vs.events, filters, now);
+  const prompts = livePrompts(vs.events, vs.window.events.omitted, now);
   const rows = [...matched].reverse().slice(0, RENDER_LIMIT);
   const filtered = isFiltered(filters);
-  const filterNote = filtered ? `filtered: ${matched.length} of ${state.events.length} sent` : null;
-  const selectedEvent = state.events.find((e) => e.id === selected);
+  const filterNote = filtered ? `filtered: ${matched.length} of ${vs.events.length} sent` : null;
+  const selectedEvent = vs.events.find((e) => e.id === selected);
 
-  const live = useRef({ rows, selected, drawer, detailOpen });
-  live.current = { rows, selected, drawer, detailOpen };
+  // One replay cursor: Call in focus, the patch bay, the ticker selection and the detail timeline all follow it.
+  const timeline = useMemo(
+    () => (replay ? sessionTimeline(vs.events, replay.session) : []),
+    [vs.events, replay?.session],
+  );
+  const cursorIdx = replay ? timeline.findIndex((e) => e.id === replay.cursor) : -1;
+  const replayView: ReplayView | undefined =
+    replay && cursorIdx >= 0
+      ? {
+          played: timeline.slice(0, cursorIdx + 1),
+          length: timeline.length,
+          index: cursorIdx,
+          playing: replay.playing,
+          speed: replay.speed,
+          coverage: replayCoverage(timeline, vs.window),
+          onPlay: () => actions.current.togglePlay(),
+          onStep: (d) => actions.current.step(d),
+          onSpeed: (speed) => setReplay((r) => (r ? { ...r, speed } : r)),
+          onStop: () => actions.current.stopReplay(),
+        }
+      : undefined;
+
+  const live = useRef({ rows, selected, drawer, detailOpen, replay, timeline, cursorIdx, events: vs.events });
   const opener = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    live.current = { rows, selected, drawer, detailOpen, replay, timeline, cursorIdx, events: vs.events };
+  });
 
   const restoreFocus = () => {
     const el = opener.current;
@@ -202,30 +297,90 @@ export function DashboardShell({
   const closeOverlay = () => {
     setDrawer(null);
     setDetailOpen(false);
+    setNotice(null);
     // Wait for the overlay to unmount before moving focus.
     setTimeout(restoreFocus, 0);
   };
   const toggleDrawer = (name: DrawerName) => (live.current.drawer === name ? closeOverlay() : openDrawer(name));
+  /** Selecting inside a replayed session moves the cursor too, and pauses. */
+  const focusEvent = (id: string) => {
+    setSelected(id);
+    setNotice(null);
+    const { replay: r, timeline: tl } = live.current;
+    if (r && tl.some((e) => e.id === id)) setReplay({ ...r, cursor: id, playing: false });
+  };
   const openDetail = (id: string) => {
     if (live.current.drawer === null && !live.current.detailOpen) remember();
-    setSelected(id);
+    focusEvent(id);
     setDrawer(null);
     setDetailOpen(true);
   };
+  const startReplay = () => {
+    const { rows: list, selected: sel, events } = live.current;
+    const focus = list.find((e) => e.id === sel) ?? list[0];
+    const first = focus ? sessionTimeline(events, focus.session)[0] : undefined;
+    if (!focus || !first) return;
+    setReplay({ session: focus.session, cursor: first.id, playing: false, speed: 1 });
+    setSelected(first.id);
+    setNotice(null);
+  };
+  const stopReplay = () => {
+    setReplay(null);
+    setTimeout(() => document.getElementById("replay-start")?.focus(), 0);
+  };
+  const moveCursor = (id: string, playing: boolean) => {
+    setReplay((r) => (r ? { ...r, cursor: id, playing } : r));
+    setSelected(id);
+  };
+  const step = (delta: number) => {
+    const { timeline: tl, cursorIdx: at } = live.current;
+    const to = tl[stepIndex(at, delta, tl.length)];
+    if (to) moveCursor(to.id, false);
+  };
+  const togglePlay = () => {
+    const { replay: r, timeline: tl, cursorIdx: at } = live.current;
+    if (!r) return;
+    if (r.playing) setReplay({ ...r, playing: false });
+    else if (at >= tl.length - 1 && tl[0]) moveCursor(tl[0].id, true);
+    else setReplay({ ...r, playing: true });
+  };
+  const selectView = (id: string) => {
+    if (id === viewId) return;
+    setViewId(id);
+    setSelected(null);
+    setDetailOpen(false);
+    setReplay(null);
+    setKnown(undefined);
+    setNotice(null);
+    // Source and client filters name the previous view's evidence.
+    setFilters((f) => ({ ...f, source: "", client: "" }));
+  };
 
-  const actions = useRef({ closeOverlay, toggleDrawer, openDetail });
-  actions.current = { closeOverlay, toggleDrawer, openDetail };
+  const actions = useRef({
+    closeOverlay,
+    toggleDrawer,
+    openDetail,
+    focusEvent,
+    startReplay,
+    stopReplay,
+    step,
+    togglePlay,
+  });
+  useEffect(() => {
+    actions.current = { closeOverlay, toggleDrawer, openDetail, focusEvent, startReplay, stopReplay, step, togglePlay };
+  });
 
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
       if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
-      const { rows: list, selected: sel, drawer: dr, detailOpen: det } = live.current;
+      const { rows: list, selected: sel, drawer: dr, detailOpen: det, replay: rp } = live.current;
       if (ev.key === "Escape") {
         if (isTyping(ev.target)) {
           (ev.target as HTMLElement).blur();
           return;
         }
         if (dr !== null || det) actions.current.closeOverlay();
+        else if (rp) actions.current.stopReplay();
         return;
       }
       if (isTyping(ev.target)) return;
@@ -235,13 +390,27 @@ export function DashboardShell({
       } else if (ev.key === "f") {
         ev.preventDefault();
         document.getElementById("flt-role")?.focus();
-      } else if (ev.key >= "1" && ev.key <= "4") {
+      } else if (ev.key >= "1" && ev.key <= String(DRAWERS.length)) {
         actions.current.toggleDrawer(DRAWERS[Number(ev.key) - 1]!.name);
+      } else if (ev.key === "r") {
+        if (dr !== null) return;
+        if (rp) actions.current.stopReplay();
+        else actions.current.startReplay();
+      } else if (
+        rp &&
+        dr === null &&
+        (ev.key === "p" || ev.key === "," || ev.key === "." || ev.key === "[" || ev.key === "]")
+      ) {
+        ev.preventDefault();
+        if (ev.key === "p") actions.current.togglePlay();
+        else if (ev.key === ",") actions.current.step(-1);
+        else if (ev.key === ".") actions.current.step(1);
+        else setReplay((r) => (r ? { ...r, speed: nextSpeed(r.speed, ev.key === "]" ? 1 : -1) } : r));
       } else if (ev.key === "j" || ev.key === "k") {
         if (list.length === 0 || dr !== null) return;
         const idx = list.findIndex((e) => e.id === sel);
         const next = ev.key === "j" ? Math.min(list.length - 1, idx + 1) : Math.max(0, idx < 0 ? 0 : idx - 1);
-        setSelected(list[next]!.id);
+        actions.current.focusEvent(list[next]!.id);
         ev.preventDefault();
       } else if (ev.key === "Enter") {
         // A focused button or link owns Enter (header views, drawer tabs, close, clear, timeline rows).
@@ -262,6 +431,71 @@ export function DashboardShell({
     document.querySelector(`tr[aria-selected="true"]`)?.scrollIntoView?.({ block: "nearest" });
   }, [selected]);
 
+  // Playback: wait the recorded gap (scaled by speed), then advance. Stops at the last retained event.
+  useEffect(() => {
+    if (!replay?.playing || cursorIdx < 0) return;
+    const current = timeline[cursorIdx]!;
+    const next = timeline[cursorIdx + 1];
+    if (!next) {
+      setReplay((r) => (r ? { ...r, playing: false } : r));
+      return;
+    }
+    const timer = setTimeout(
+      () => {
+        setReplay((r) => (r && r.cursor === current.id ? { ...r, cursor: next.id } : r));
+        setSelected(next.id);
+      },
+      replayDelay(current.ts, next.ts, replay.speed),
+    );
+    return () => clearTimeout(timer);
+  }, [replay?.playing, replay?.speed, timeline, cursorIdx]);
+
+  // Eviction. The selected event can leave the retained window while it is open: move to its nearest neighbour,
+  // say so, and put keyboard focus somewhere real instead of letting it fall to the page body.
+  const lastRows = useRef<string[]>([]);
+  useEffect(() => {
+    const prev = lastRows.current;
+    lastRows.current = rows.map((e) => e.id);
+    if (!selected || replay) return;
+    if (vs.events.some((e) => e.id === selected)) return;
+    const next = nearestSurvivor(prev, selected, new Set(lastRows.current));
+    const target = next ? vs.events.find((e) => e.id === next) : undefined;
+    setSelected(next);
+    setNotice(
+      target
+        ? `selected event left the retained window · moved to ${fmtTs(target.ts)}`
+        : "selected event left the retained window · nothing left to select",
+    );
+    if (detailOpen) setDetailOpen(false);
+    if (detailOpen || document.activeElement === document.body) focusTicker();
+  }, [rows, selected, replay, detailOpen, vs.events]);
+
+  // Replay cursor eviction: move to the nearest retained event of the session and pause, or stop.
+  const lastTimeline = useRef<string[]>([]);
+  useEffect(() => {
+    const prev = lastTimeline.current;
+    lastTimeline.current = timeline.map((e) => e.id);
+    if (!replay || cursorIdx >= 0) return;
+    const next = nearestSurvivor(prev, replay.cursor, new Set(lastTimeline.current));
+    if (next) {
+      setReplay({ ...replay, cursor: next, playing: false });
+      setSelected(next);
+      setNotice("replay event left the retained window · paused at the nearest retained event");
+    } else {
+      setReplay(null);
+      setNotice("replay session left the retained window · replay stopped");
+    }
+    focusTicker();
+  }, [timeline, cursorIdx, replay]);
+
+  // Filter options that left the window stay selectable while a filter is active; clearing filters resets them.
+  useEffect(() => {
+    setKnown((prev) => {
+      const next = filtered ? rememberOptions(prev ?? null, vs.events) : rememberOptions(null, vs.events);
+      return prev && sameOptions(prev, next) ? prev : next;
+    });
+  }, [vs.events, filtered]);
+
   const drawers = (
     <nav className="drawers" aria-label="views">
       {DRAWERS.map((d, i) => (
@@ -276,15 +510,26 @@ export function DashboardShell({
         >
           {d.title}
           <sup>{i + 1}</sup>
+          {d.name === "alerts" && alerts.active > 0 ? (
+            <span className="badge" data-badge="alerts" title={`${alerts.active} active alert evidence`}>
+              {`▲${alerts.active}`}
+            </span>
+          ) : null}
         </button>
       ))}
     </nav>
   );
-  const r = state.readouts;
-  const a = state.agreement;
-  const view = DRAWERS.find((d) => d.name === drawer);
+  const r = vs.readouts;
+  const a = vs.agreement;
+  const drawerView = DRAWERS.find((d) => d.name === drawer);
+  const src = view.source;
+  const staleNote =
+    src && !view.waiting && src.status !== "live"
+      ? `${src.id} ${src.status}${src.lastSeenAt ? ` · last seen ${fmtClock(src.lastSeenAt)}` : ""} · showing last retained state`
+      : null;
+  const classes = ["app", demo ? "has-demo" : "", state.exchange ? "has-exchange" : ""].filter(Boolean).join(" ");
   return (
-    <div className={demo ? "app has-demo" : "app"}>
+    <div className={classes}>
       {demo ? (
         <div className="demo-band" role="note">
           DEMO · fixtures replay, not live data
@@ -337,30 +582,64 @@ export function DashboardShell({
           )}
         </div>
       </header>
-      <SourceHealth state={state} drawers={drawers} />
+      {state.exchange ? (
+        <SourceBar
+          sources={state.exchange.sources}
+          selected={view.id}
+          sentEvents={vs.events.length}
+          onSelect={selectView}
+        />
+      ) : null}
+      <SourceHealth
+        state={vs}
+        drawers={drawers}
+        rejected={rejected}
+        staleNote={staleNote}
+        combinedExchange={Boolean(state.exchange && view.id === COMBINED)}
+      />
       <FlowView
-        state={state}
+        state={vs}
         rows={rows}
         selected={selected}
         arrived={arrived}
         burst={burst}
         filterNote={filterNote}
-        filterBar={<FilterBar events={state.events} filters={filters} matched={matched.length} onChange={setFilters} />}
+        notice={notice}
+        replay={replayView}
+        onReplayStart={startReplay}
+        waiting={view.waiting && src ? { id: src.id, status: src.status, detail: src.detail } : undefined}
+        filterBar={
+          <FilterBar
+            events={vs.events}
+            filters={filters}
+            known={known}
+            matched={matched.length}
+            onChange={setFilters}
+          />
+        }
         onSelect={openDetail}
       />
-      {view ? (
+      {drawerView ? (
         <Drawer
-          name={view.name}
-          title={view.title}
-          scope={view.scope}
+          name={drawerView.name}
+          title={drawerView.title}
+          scope={drawerView.scope}
           tabs={DRAWERS}
           onTab={(name) => openDrawer(name as DrawerName)}
           onClose={closeOverlay}
         >
-          {view.name === "agreement" ? <AgreementView state={state} /> : null}
-          {view.name === "usage" ? <UsageView state={state} /> : null}
-          {view.name === "errors" ? <ErrorsView state={state} /> : null}
-          {view.name === "history" ? <HistoryView state={state} /> : null}
+          {drawerView.name === "agreement" ? <AgreementView state={vs} /> : null}
+          {drawerView.name === "usage" ? <UsageView state={vs} /> : null}
+          {drawerView.name === "errors" ? <ErrorsView state={vs} /> : null}
+          {drawerView.name === "history" ? <HistoryView state={vs} /> : null}
+          {drawerView.name === "alerts" ? <AlertsPanel view={alerts} now={now} /> : null}
+          {drawerView.name === "quota" ? <QuotaPanel view={quotaView(state, view.id, now)} /> : null}
+          {drawerView.name === "export" ? (
+            <ExportPanel plan={exportPlan(state, view.id, period, now)} period={period} onPeriod={setPeriod} />
+          ) : null}
+          {drawerView.name === "presets" ? (
+            <PresetsPanel view={presetView(state, view.id, period, now)} period={period} onPeriod={setPeriod} />
+          ) : null}
         </Drawer>
       ) : null}
       {detailOpen && selectedEvent ? (
@@ -373,9 +652,9 @@ export function DashboardShell({
           </header>
           <EventDetail
             event={selectedEvent}
-            events={state.events}
-            retained={state.window.events.retained}
-            onSelect={(id) => setSelected(id)}
+            events={vs.events}
+            retained={vs.window.events.retained}
+            onSelect={focusEvent}
           />
         </aside>
       ) : null}

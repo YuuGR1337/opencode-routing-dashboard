@@ -1,4 +1,5 @@
 import type { FlowEvent } from "../src/core/aggregate";
+import { evidence } from "./exchange";
 
 export type FlowFilters = {
   query: string;
@@ -8,6 +9,8 @@ export type FlowFilters = {
   agent: string;
   model: string;
   decision: string;
+  source: string;
+  client: string;
   errorsOnly: boolean;
 };
 export const EMPTY_FILTERS: FlowFilters = {
@@ -18,6 +21,8 @@ export const EMPTY_FILTERS: FlowFilters = {
   agent: "",
   model: "",
   decision: "",
+  source: "",
+  client: "",
   errorsOnly: false,
 };
 export function filterEvents(events: FlowEvent[], filters: FlowFilters, now: number): FlowEvent[] {
@@ -40,6 +45,9 @@ export function filterEvents(events: FlowEvent[], filters: FlowFilters, now: num
     if (filters.model && event.classifierModel !== filters.model) return false;
     if (filters.decision && event.decision !== filters.decision) return false;
     if (filters.errorsOnly && event.errors.length === 0) return false;
+    const tag = evidence(event);
+    if (filters.source && tag.sourceId !== filters.source) return false;
+    if (filters.client && tag.client !== filters.client) return false;
     return (
       !query ||
       [
@@ -52,6 +60,8 @@ export function filterEvents(events: FlowEvent[], filters: FlowFilters, now: num
         event.routeSuggestion,
         event.contextAgent,
         event.classifierModel,
+        tag.directory,
+        tag.client,
       ].some((value) => value?.toLowerCase().includes(query))
     );
   });

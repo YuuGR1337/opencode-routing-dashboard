@@ -1,0 +1,80 @@
+{
+ "range": {
+  "from": 1793156400000,
+  "to": 1793758556405
+ },
+ "sessions": 85,
+ "subagents": 41,
+ "prompts": 189,
+ "steps": 4857,
+ "tokens": {
+  "input": 25037910,
+  "output": 1668163,
+  "reasoning": 2598052,
+  "cache": {
+   "read": 581379016,
+   "write": 6117844
+  }
+ },
+ "cost": 435.43,
+ "tools": {
+  "mode": "detail",
+  "totals": {
+   "calls": 7282,
+   "succeeded": 7195,
+   "failed": 87,
+   "unfinished": 0
+  },
+  "usage": [
+   {
+    "name": "shell",
+    "calls": 2857,
+    "succeeded": 2836,
+    "failed": 21,
+    "unfinished": 0,
+    "durationP50": 123
+   }
+  ]
+ },
+ "activeDays": 7,
+ "streak": 7,
+ "activity": [],
+ "models": [
+  {
+   "model": {
+    "id": "grok-4.7",
+    "providerID": "xai",
+    "variant": "high"
+   },
+   "steps": 2724,
+   "tokens": {
+    "input": 23328656,
+    "output": 826515,
+    "reasoning": 2101026,
+    "cache": {
+     "read": 434342016,
+     "write": 0
+    }
+   },
+   "cost": 431.18
+  },
+  {
+   "model": {
+    "id": "claude-sonnet-5-5",
+    "providerID": "claude-code",
+    "variant": "default"
+   },
+   "steps": 620,
+   "tokens": {
+    "input": 976,
+    "output": 322134,
+    "reasoning": 157178,
+    "cache": {
+     "read": 43150559,
+     "write": 2080434
+    }
+   },
+   "cost": 0
+  }
+ ]
+}

@@ -11,7 +11,7 @@ if (import.meta.main) {
     const config = loadConfig(process.env, args);
     if (config.help)
       console.log(
-        "Usage: opencode-routing-dashboard [serve|snapshot|agent] [--state-dir PATH] [--observe-path PATH] [--route-path PATH] [--permissions-path PATH] [--port PORT] [--stats-interval SECONDS] [--snapshot-dir PATH] [--stats-command COMMAND] [--stats-file PATH] [--stats-enabled true|false] [--max-records N] [--demo true|false] [--config PATH] [--bind IP] [--token-env NAME] [--redact-prompts true|false]\n  serve     Start the dashboard (default)\n  agent     Export local sources (redacts known observe/route prompt fields when enabled)\n  snapshot  Capture one weekly snapshot and exit",
+        "Usage: opencode-routing-dashboard [serve|snapshot|agent] [--state-dir PATH] [--observe-path PATH] [--route-path PATH] [--permissions-path PATH] [--port PORT] [--stats-interval SECONDS] [--snapshot-dir PATH] [--stats-command COMMAND] [--stats-file PATH] [--stats-enabled true|false] [--max-records N] [--demo true|false] [--config PATH] [--local-source-config PATH] [--analytics-config PATH] [--bind IP] [--token-env NAME] [--redact-prompts true|false]\n  serve     Start the dashboard (default)\n  agent     Export local sources (redacts known observe/route prompt fields when enabled)\n  snapshot  Capture one weekly snapshot and exit",
       );
     else if (command === "snapshot") {
       const { snapshotOnce } = await import("./sources/snapshots");
