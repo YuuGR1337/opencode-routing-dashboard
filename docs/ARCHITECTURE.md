@@ -16,3 +16,12 @@ snapshots/*.json ──load──┘                                            
 - `web/` – React client bundled by `bun build`.
 - `src/config.ts` – env/flags, defaults, path expansion.
 - `contrib/` – systemd user unit.
+
+## Core evidence model
+
+`aggregate(DashboardInput, now)` is pure and returns JSON-serializable `DashboardState`.
+Observe/route records pair by exact session and non-null message, taking the nearest
+unpaired prior observation when keys repeat. Source arrival order does not change
+the result. Permission records are retained separately. Raw records survive for
+inspection; classifier identity and context agent are never relabeled as execution.
+Usage totals come from stats, not guessed allocations across messages.

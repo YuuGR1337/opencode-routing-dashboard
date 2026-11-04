@@ -24,3 +24,13 @@ The orchestrator owns milestone-wide typecheck, lint and tests after reconciling
 - `bun test` → exit 0, 6 tests across 2 files.
 - Reviewed source guards and tests: malformed JSON and nested invalid fields reject; unknown fields survive; fixture exception records and optional scores parse.
 - `activity` remains an opaque array because its element schema is not documented. PLAN sign-off awaits branch CI, as required by AGENTS.md.
+
+### M2 — pure aggregation
+
+- Red: `bun test test/aggregate.test.ts` → exit 1, 3 behavioral failures against `Not implemented`.
+- Green: `bun test test/aggregate.test.ts` → exit 0, 3 tests.
+- `bun run typecheck` → exit 0.
+- `bun run lint` → exit 0.
+- `bun test` → exit 0, 9 tests across 3 files.
+- Fixtures establish context agreement 1/2 (50%), 87 tool failures, cost 435.43, separate observe/route confidence, retained null-key rows and unavailable execution/fallback fields. Repeated-key pairing and separator collisions are tested.
+- The 10k join test passes; full server startup under one second remains an M6 runtime claim, not established by this unit test. PLAN sign-off awaits CI.
