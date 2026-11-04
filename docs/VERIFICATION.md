@@ -123,3 +123,10 @@ PLAYWRIGHT_MODULE_PATH=<existing-playwright>/index.mjs CHROMIUM_PATH=/usr/bin/ch
 - After the verifier's 320 synthetic demo appends: state curl exit 0, `events: 324`, stats status `ok`, usage cost `435.43`, tool failures `87`, malformed observe `1`, permissions retained `3`. No real data was written.
 - Both verification process groups were stopped. `ss -ltnp '( sport = :47877 or sport = :47878 )'` → exit 0, no listeners.
 - Final operations/security gate: PASS after read-only review of atomic persistence, loader bounds, source overrides, package-relative assets and shutdown. Ranked limitations and process evidence gaps are in KNOWN_ISSUES.md.
+
+## Branch CI and milestone sign-off
+
+`gh pr checks 2 --watch --fail-fast` → exit 0, 1 check passed / 0 failed for implementation head `8d3f49554448b4af17b3eaea8bd82a02eeb1ea49`.
+[CI check](https://github.com/crisesarmiento/opencode-routing-dashboard/actions/runs/41822906254/job/126550242459).
+Only after that success were all M0–M6 (including M4a) boxes signed off in PLAN.md.
+The final sign-off commit changes documentation only; the same full local code evidence remains valid.
