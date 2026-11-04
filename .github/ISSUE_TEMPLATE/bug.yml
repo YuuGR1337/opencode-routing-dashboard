@@ -1,0 +1,15 @@
+name: Bug
+description: Something is broken
+labels: [bug]
+body:
+  - type: textarea
+    id: repro
+    attributes: {label: Steps to reproduce, description: Smallest input (fixture line, config, command)}
+    validations: {required: true}
+  - type: textarea
+    id: expected
+    attributes: {label: Expected vs actual}
+    validations: {required: true}
+  - type: input
+    id: version
+    attributes: {label: Version / OS / opencode version}
