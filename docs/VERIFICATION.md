@@ -66,3 +66,18 @@ These are child-process controls, not an OS network sandbox or control of unrela
 - Clean build screenshots: `m4a-{empty,live,detail}-{1440x900,1024x768}.png` and `m4a-arrival-motion-1440x900.png`. Fixture files were replayed live into a temporary directory with `ORD_DEMO=true` and `ORD_STATS_FILE=fixtures/stats.json`.
 - Opened/reviewed live screenshots at both sizes after the final clean build; empty/detail/arrival layouts were also reviewed, with no rendering changes in the recapture. Approved deviations are listed in DESIGN.md.
 - Browser evidence: used IBM Plex Mono and Instrument Sans weights load locally, no CSP errors, failed requests, page errors or favicon 404s in captures. Arrival evidence is a mid-motion screenshot and observed motion-element counts 0 → 3 → 0, not a frame-rate benchmark.
+
+### M4 — views and filtering
+
+- View red: `bun test test/views.test.tsx` → exit 1, 18 behavioral failures against stubs/missing M4 behavior.
+- Focused green: `bun test test/views.test.tsx test/ui-shell.test.tsx test/filters.test.ts` → exit 0, 35 tests.
+- Filters red: `bun test test/filters.test.ts` → exit 1 against stub; green → exit 0, 4 tests.
+- `bun run typecheck` → exit 0; `bun run lint` → exit 0; `bun test` → exit 0, 78 tests across 11 files (11.86 s); `bun run build` → exit 0.
+- Existing shell assertion that drawers were disabled until M4 was replaced with the stronger completed-behavior assertion that buttons are enabled and correctly associated with drawers. No other tests weakened, skipped or deleted.
+- Designer's 90 browser checks passed across both viewport sizes: filters/search/clear/time range/errors, shortcuts, row detail, focus restoration and drawer switching. No console/page errors or failed requests.
+- Opened/reviewed all five view screenshots at both sizes. Sixteen M4 captures include detail, matching filter and no-match filter states. Approved layout adaptations are in DESIGN.md.
+- Populated History is unit-tested using explicit demo-fixture snapshots; its runtime source and populated screenshots remain M5 work. Timeout detail counts explicitly describe sent events, not the entire retained window.
+- Gate regressions: `node /tmp/m4a/gate.mjs http://127.0.0.1:47853 docs/screenshots <temporary-state-dir>` → exit 1, 8/19 checks before the fixes; same script after correction → exit 0, 19/19. The checks cover Enter on focused buttons and time-window expiration with Playwright's clock and no new SSE delta. Red console output was observed, not retained as a separate file.
+- Final focused green: `bun test test/views.test.tsx test/ui-shell.test.tsx test/filters.test.ts test/clock.test.ts` → exit 0, 41 tests. The pure clock excludes session-only route exceptions from prompt counts.
+- Final reconciled checks: `bun run typecheck` → exit 0; `bun run lint` → exit 0; `bun test` → exit 0, 84 tests across 12 files (11.87 s); `bun run build` → exit 0.
+- All sixteen M4 screenshots were recaptured with the source-backed final readout, `last 60 s`. The 90-check interaction script passed again. Lower-bound readout markup is unit-tested, not separately screenshotted.

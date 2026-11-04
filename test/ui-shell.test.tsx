@@ -74,6 +74,38 @@ test("readouts state agreement as context agreement and fallback as not detectab
   expect(html).not.toMatch(/fallback[^<]*\d+(\.\d+)?%/);
 });
 
+test("prompts/min counts the last 60 s on the page clock, not the server's retained numerator", async () => {
+  const state = await fixtureState();
+  // B2 (02:12:51) and C3 (02:13:00) are inside the last 60 s at 02:13:30; the server said 0 at its own clock.
+  const html = renderToStaticMarkup(<DashboardShell state={state} now={Date.parse("2026-11-04T02:13:30Z")} />);
+  expect(html).toMatch(
+    /class="readout-value">2<\/div><div class="readout-label">prompts\/min<\/div><div class="readout-note">last 60 s</,
+  );
+  expect(html).not.toContain("sent events · last 60 s");
+});
+
+test("prompts/min is a lower bound only when events were omitted and the oldest sent one is inside 60 s", async () => {
+  const state = await fixtureState();
+  const omitted: DashboardState = {
+    ...state,
+    window: { ...state.window, events: { ...state.window.events, omitted: 5 } },
+  };
+  // Oldest sent event (02:12:16.989) is inside the last 60 s at 02:12:20, so older events may also qualify.
+  // Only A1 is a prompt there: the session-only route exception (D4) is not counted as one.
+  const bound = renderToStaticMarkup(<DashboardShell state={omitted} now={Date.parse("2026-11-04T02:12:20Z")} />);
+  expect(bound).toContain('class="readout-value">≥1</div>');
+  expect(bound).toContain("sent events · last 60 s");
+  // Oldest sent event is older than 60 s: the count is complete for that window even with omissions.
+  const exact = renderToStaticMarkup(<DashboardShell state={omitted} now={Date.parse("2026-11-04T02:13:30Z")} />);
+  expect(exact).toContain('class="readout-value">2</div>');
+  expect(exact).not.toContain("≥");
+  // No sent events at all but omissions: nothing can be claimed beyond a lower bound.
+  const none = renderToStaticMarkup(
+    <DashboardShell state={{ ...omitted, events: [] }} now={Date.parse("2026-11-04T02:13:30Z")} />,
+  );
+  expect(none).toContain('class="readout-value">≥0</div>');
+});
+
 test("model rail is aggregate stats explicitly unlinked to calls", async () => {
   const html = render(await fixtureState());
   expect(html).toContain("aggregate stats");
@@ -159,11 +191,12 @@ test("DEMO marker only appears when demo is set; link state only when known", as
   expect(render(state)).not.toContain("link down");
 });
 
-test("drawer navigation is visible but unavailable until M4", async () => {
+test("drawer navigation is enabled and points at its drawer (implemented in M4)", async () => {
   const html = render(await fixtureState());
   for (const name of ["Agreement", "Usage", "Errors", "History"]) expect(html).toContain(name);
-  expect(html.match(/<button[^>]*data-drawer[^>]*disabled/g)).toHaveLength(4);
-  expect(html).toContain("M4");
+  expect(html.match(/<button[^>]*data-drawer[^>]*>/g)).toHaveLength(4);
+  expect(html).not.toMatch(/<button[^>]*data-drawer[^>]*disabled/);
+  expect(html).toContain('aria-controls="drawer-agreement"');
 });
 
 test("markup never uses inline styles (CSP)", async () => {
@@ -226,6 +259,7 @@ test("stylesheet follows DESIGN tokens, local fonts and motion rules", async () 
   for (const role of ["#C792EA", "#82AAFF", "#F78C6C"]) expect(css.toUpperCase()).toContain(role);
   expect(css).toContain("--row: 22px");
   expect(css).toContain("prefers-reduced-motion");
+  expect(css).toContain(":focus-visible");
   expect(css).not.toMatch(/infinite/);
   expect(css).not.toMatch(/backdrop-filter|linear-gradient|radial-gradient/);
   expect(css).not.toMatch(/https?:\/\//);

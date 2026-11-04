@@ -75,3 +75,15 @@ palette, compact typography, 22 px rows and no-idle-animation constraint.
 
 M4a intentionally leaves view drawers and search/filter shortcuts for M4; they
 are disabled and labeled, not presented as working functionality.
+
+## M4 review
+
+Flow, Agreement, Usage, Errors and empty History were reviewed at both target
+viewports (`docs/screenshots/m4-*`). M4 replaces the disabled M4a navigation
+with working drawers, filters and keyboard controls. Accepted adaptations:
+right-side overlays are 640–720 px wide with internal view tabs and close;
+filters stay visible in the ticker, whose height becomes 244 px / 192 px;
+Escape from search blurs and allows the browser's native query-clear behavior;
+the narrow filter-scope label may truncate, while the ticker retains the full
+scope label. These choices preserve visible DEMO labeling, 22 px data rows,
+local fonts and the switchboard as the primary view.
