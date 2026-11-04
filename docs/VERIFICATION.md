@@ -92,3 +92,34 @@ These are child-process controls, not an OS network sandbox or control of unrela
 - History is loaded from actual temporary snapshot files. The current-week file was produced by `bun run snapshot -- --snapshot-dir /tmp/m5/snapshots --stats-file fixtures/stats.json` → exit 0. Older points are explicitly synthetic anonymized demo clones, not real history.
 - Screenshots `m5-history-{empty,populated}-{1440x900,1024x768}.png` were captured from a normal source-backed build with fixture replay and reviewed. No console/network/CSP errors. Source path, snapshot counts, individual ranges and absence of inferred weekly deltas are visible; a later copy-only clarification says ranges *may* differ or overlap.
 - Roundtrip, concurrent no-overwrite publication, schema/date/symlink validation, byte/count caps, missing directory, fixture snapshot command and live server history refresh are tested. Timer cleanup exists but has no dedicated M5 assertion; add to final hardening if materially changed.
+
+### M6 — final hardening
+
+- Source-path red: config/server tests failed before the new overrides. `bun test test/config.test.ts test/server.test.ts test/performance.test.ts` → exit 0, 16 tests after implementation.
+- Core prompt-count regression: `bun test test/aggregate.test.ts -t 'fixture evidence'` → exit 1 (4 instead of 3); `bun test test/aggregate.test.ts` → exit 0, 7 tests after excluding session-only exceptions.
+- `bun test test/performance.test.ts` → exit 0; focused startApp-to-HTTP measurement 86.49 ms, under 1000 ms, 10k fixture-derived records. Snapshot is below 16 MiB and a new append arrives within 1900 ms.
+- Independent cold-process check: `ORD_STATE_DIR=<temporary-10000-lines> ORD_STATS_ENABLED=false ORD_PORT=0 bun run start` → exit 0, 175.99 ms from spawn through build/start to parsed HTTP state, retained/sent 10000. Result saved during verification to `/tmp/opencode/ord-cold-start.json`.
+- Portable verifier syntax/help and Biome → exit 0. Its first real run exposed a test-only assumption about Escape clearing a search field; corrected without force-clicking a disabled button. Real read-only and append runs then passed.
+- Final reconciled checks: `bun run typecheck` → exit 0; `bun run lint` → exit 0; `bun test` → exit 0, 103 tests across 15 files (12.56 s); `bun run build` → exit 0; `git diff --check` → exit 0.
+
+## Real production-command verification
+
+Started the actual command with `ORD_STATE_DIR=fixtures ORD_STATS_FILE=fixtures/stats.json ORD_DEMO=true ORD_PORT=47877 bun run start` (no real user logs or CLI stats).
+
+- `curl --fail http://127.0.0.1:47877/api/state` → exit 0: `events: 4`, context agreement `50`, malformed observe `1`, log diagnostics total `3`; stats initially load asynchronously rather than delaying the listener.
+- `curl --fail http://127.0.0.1:47877/` → exit 0, HTTP 200. `/main.js` and `/assets/fonts.css` → exit 0, HTTP 200.
+- `curl --max-time 2 -N http://127.0.0.1:47877/api/events` → exit 28, **expected** for a deliberately open SSE stream. Received 7805 bytes beginning `event: snapshot`; parsed envelope `seq: 1`, `demo: true`, `events: 4`. Snapshot assertion → exit 0.
+- `ss -ltnp 'sport = :47877'` → exit 0: `LISTEN ... 127.0.0.1:47877 ... users:(("bun",...))`; no wildcard or IPv6 listener.
+
+Final browser verification used a separate temporary copy of fixtures and the same `bun run start` command, not tracked fixture mutation:
+
+```sh
+PLAYWRIGHT_MODULE_PATH=<existing-playwright>/index.mjs CHROMIUM_PATH=/usr/bin/chromium \
+  node scripts/verify-ui.mjs --url http://127.0.0.1:47878 \
+  --state-dir <temporary-demo-directory> --report /tmp/opencode/ord-final-ui.json
+```
+
+- Exit 0; **32 passed, 0 failed, 0 skipped**, including views, filters, focused-button Enter, page-clock expiration without deltas, local fonts/CSP, same-origin requests, reduced-motion CSS, >10/s burst collapse and the 300-row render limit.
+- After the verifier's 320 synthetic demo appends: state curl exit 0, `events: 324`, stats status `ok`, usage cost `435.43`, tool failures `87`, malformed observe `1`, permissions retained `3`. No real data was written.
+- Both verification process groups were stopped. `ss -ltnp '( sport = :47877 or sport = :47878 )'` → exit 0, no listeners.
+- Final operations/security gate: PASS after read-only review of atomic persistence, loader bounds, source overrides, package-relative assets and shutdown. Ranked limitations and process evidence gaps are in KNOWN_ISSUES.md.

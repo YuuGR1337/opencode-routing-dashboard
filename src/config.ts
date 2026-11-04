@@ -6,6 +6,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, args = process.
   const values: Record<string, string | undefined> = { ...env };
   const flags: Record<string, string> = {
     "state-dir": "ORD_STATE_DIR",
+    "observe-path": "ORD_OBSERVE_PATH",
+    "route-path": "ORD_ROUTE_PATH",
+    "permissions-path": "ORD_PERMISSIONS_PATH",
     port: "ORD_PORT",
     "stats-interval": "ORD_STATS_INTERVAL",
     "snapshot-dir": "ORD_SNAPSHOT_DIR",
@@ -50,6 +53,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, args = process.
     help,
     demo: demo === "true" || demo === "1",
     stateDir,
+    sourcePaths: {
+      observe: expand(values.ORD_OBSERVE_PATH ?? join(stateDir, "jev-observe.jsonl")),
+      route: expand(values.ORD_ROUTE_PATH ?? join(stateDir, "jev-route.jsonl")),
+      permissions: expand(values.ORD_PERMISSIONS_PATH ?? join(stateDir, "jev-permissions.jsonl")),
+    },
     port: integer("ORD_PORT", 4777, 0, 65535),
     statsInterval: integer("ORD_STATS_INTERVAL", 60, 1, 2147483),
     snapshotDir: expand(values.ORD_SNAPSHOT_DIR ?? join(stateDir, "snapshots")),

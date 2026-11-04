@@ -1,5 +1,5 @@
 import { realpath, stat } from "node:fs/promises";
-import { join, resolve, sep } from "node:path";
+import { resolve, sep } from "node:path";
 import type { Config } from "../config";
 import { aggregate, type DashboardInput, MAX_PAYLOAD_BYTES, type Source } from "../core/aggregate";
 import { parseLine } from "../core/schema";
@@ -12,11 +12,7 @@ export async function startApp(
   options: { heartbeatMs?: number; staticDir?: string; historyRefreshMs?: number } = {},
 ) {
   const names: Source[] = ["observe", "route", "permissions"];
-  const paths = {
-    observe: join(config.stateDir, "jev-observe.jsonl"),
-    route: join(config.stateDir, "jev-route.jsonl"),
-    permissions: join(config.stateDir, "jev-permissions.jsonl"),
-  };
+  const paths = config.sourcePaths;
   const input: DashboardInput = {
     observe: [],
     route: [],
@@ -201,7 +197,7 @@ export async function startApp(
           actualRoot = await realpath(root);
           if (!(await stat(actualRoot)).isDirectory()) throw new Error("Not a directory");
         } catch {
-          return new Response("Dashboard UI unavailable until M4.", {
+          return new Response("Dashboard assets unavailable. Run bun run build in the source repository.", {
             status: 503,
             headers: { ...headers, "Content-Type": "text/plain; charset=utf-8" },
           });

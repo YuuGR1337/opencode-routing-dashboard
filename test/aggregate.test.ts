@@ -40,6 +40,7 @@ test("aggregates fixture evidence without inventing execution", async () => {
   expect(state.usage.totals?.cost).toBe(435.43);
   expect(state.readouts.fallbackPercent).toBeNull();
   expect(state.readouts.tokensToday).toBeNull();
+  expect(state.readouts.promptsPerMinute).toBe(3);
   expect(JSON.parse(JSON.stringify(state))).toEqual(state);
 });
 

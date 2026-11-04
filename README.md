@@ -17,6 +17,7 @@ Implementation progress is tracked in [docs/PLAN.md](docs/PLAN.md).
 See [docs/SPEC.md](docs/SPEC.md) for source formats and evidence limits,
 [docs/DESIGN.md](docs/DESIGN.md) for the switchboard system and
 [docs/VERIFICATION.md](docs/VERIFICATION.md) for checks and screenshots.
+Ranked limitations and process-evidence gaps are listed in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md).
 
 ## Run locally
 
@@ -38,6 +39,9 @@ Flags override environment variables. Run `bun src/cli.ts --help` for CLI option
 | Environment | Flag | Default |
 |---|---|---|
 | `ORD_STATE_DIR` | `--state-dir` | `~/.local/state/opencode` |
+| `ORD_OBSERVE_PATH` | `--observe-path` | `<state-dir>/jev-observe.jsonl` |
+| `ORD_ROUTE_PATH` | `--route-path` | `<state-dir>/jev-route.jsonl` |
+| `ORD_PERMISSIONS_PATH` | `--permissions-path` | `<state-dir>/jev-permissions.jsonl` |
 | `ORD_PORT` | `--port` | `4777` |
 | `ORD_STATS_INTERVAL` | `--stats-interval` | `60` seconds |
 | `ORD_STATS_COMMAND` | `--stats-command` | `opencode` executable, no shell |
@@ -78,6 +82,18 @@ bun test
 bun run build
 ```
 
+Optional browser verification uses an already available Playwright installation and Chromium;
+neither is a project dependency. Point `PLAYWRIGHT_MODULE_PATH` at its module entry file if needed:
+
+```sh
+PLAYWRIGHT_MODULE_PATH=/path/to/playwright/index.mjs CHROMIUM_PATH=/path/to/chromium \
+  node scripts/verify-ui.mjs --url http://127.0.0.1:4777 --report /path/to/ui-report.json
+```
+
+Pass `--state-dir /path/to/temporary-demo-dir` to enable burst/render-limit append checks.
+The verifier refuses writes unless the server is explicitly in DEMO mode and all source paths
+match a temporary directory outside the repository. Do not point it at real logs.
+
 The test suite uses anonymized fixtures and temporary directories, including a real random-port
 append-to-SSE integration test. Readouts explicitly distinguish retained log windows, lifetime
 malformed counts and the independent stats range. Byte-bounded detail windows report omissions;
@@ -109,6 +125,8 @@ ORD_STATS_FILE=fixtures/stats.json ORD_SNAPSHOT_DIR=/path/to/snapshots bun run s
 ```
 
 The filename is the local Monday of the capture week. An existing week is never overwritten.
+Atomic publication requires a filesystem supporting hard links (normal Linux/macOS local filesystems).
+Unsupported filesystems fail explicitly without replacing an existing snapshot or leaving a partial final file.
 The server only reads snapshots and refreshes History periodically. Up to 52 newest valid snapshots
 fit within file/total byte limits; malformed and omitted counts are visible in source status.
 Each snapshot keeps its own stats range, so overlapping ranges are not additive weekly totals.

@@ -287,7 +287,7 @@ export function aggregate(
     readouts: {
       promptsPerMinute: events.filter((e) => {
         const t = Date.parse(e.ts);
-        return t > now - 60000 && t <= now;
+        return (e.observe !== null || e.message !== null) && t > now - 60000 && t <= now;
       }).length,
       agreementPercent: percent,
       fallbackPercent: null,

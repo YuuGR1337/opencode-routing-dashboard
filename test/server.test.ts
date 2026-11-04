@@ -6,6 +6,63 @@ import { loadConfig } from "../src/config";
 import { startApp } from "../src/server";
 import { writeWeeklySnapshot } from "../src/sources/snapshots";
 
+test("server reads configured source paths", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ord-paths-"));
+  const path = join(dir, "custom=route.jsonl");
+  await writeFile(path, await Bun.file("fixtures/jev-route.jsonl").text());
+  const app = await startApp(
+    loadConfig({ ORD_STATE_DIR: dir, ORD_PORT: "0", ORD_STATS_ENABLED: "false" }, [`--route-path=${path}`]),
+  );
+  try {
+    const state = await (await fetch(`${app.url}/api/state`)).json();
+    expect(state.sources.route.path).toBe(path);
+    expect(state.sources.route.status).toBe("ok");
+    expect(state.window.events.retained).toBeGreaterThan(0);
+  } finally {
+    await app.stop();
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("port collision cleans up and permits a subsequent start", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ord-collision-"));
+  const occupied = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response("occupied") });
+  const config = loadConfig({ ORD_STATE_DIR: dir, ORD_PORT: String(occupied.port), ORD_STATS_ENABLED: "false" }, []);
+  try {
+    await expect(startApp(config, { historyRefreshMs: 20 })).rejects.toThrow();
+    occupied.stop(true);
+    const app = await startApp(config, { historyRefreshMs: 20 });
+    await app.stop();
+  } finally {
+    occupied.stop(true);
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("stopping closes history subscribers before subsequent writes", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ord-history-stop-"));
+  const config = loadConfig({ ORD_STATE_DIR: dir, ORD_PORT: "0", ORD_STATS_ENABLED: "false" }, []);
+  const app = await startApp(config, { historyRefreshMs: 20 });
+  const reader = (await fetch(`${app.url}/api/events`)).body!.getReader();
+  try {
+    await reader.read();
+    await app.stop();
+    await writeWeeklySnapshot(config.snapshotDir, await Bun.file("fixtures/stats.json").json(), new Date(2026, 0, 5));
+    await Bun.sleep(80);
+    const result = await Promise.race([
+      reader.read().then(
+        (value) => value.done,
+        () => true,
+      ),
+      Bun.sleep(500).then(() => false),
+    ]);
+    expect(result).toBe(true);
+  } finally {
+    await app.stop();
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test("history is loaded at startup and refreshed until stop", async () => {
   const dir = await mkdtemp(join(tmpdir(), "ord-history-"));
   const config = loadConfig({ ORD_STATE_DIR: dir, ORD_PORT: "0", ORD_STATS_ENABLED: "false" }, []);

@@ -10,7 +10,7 @@ if (import.meta.main) {
     const config = loadConfig(process.env, args);
     if (config.help)
       console.log(
-        "Usage: opencode-routing-dashboard [serve|snapshot] [--state-dir PATH] [--port PORT] [--stats-interval SECONDS] [--snapshot-dir PATH] [--stats-command COMMAND] [--stats-file PATH] [--stats-enabled true|false] [--max-records N] [--demo true|false]\n  serve     Start the dashboard (default)\n  snapshot  Capture one weekly snapshot and exit",
+        "Usage: opencode-routing-dashboard [serve|snapshot] [--state-dir PATH] [--observe-path PATH] [--route-path PATH] [--permissions-path PATH] [--port PORT] [--stats-interval SECONDS] [--snapshot-dir PATH] [--stats-command COMMAND] [--stats-file PATH] [--stats-enabled true|false] [--max-records N] [--demo true|false]\n  serve     Start the dashboard (default)\n  snapshot  Capture one weekly snapshot and exit",
       );
     else if (command === "snapshot") {
       const { snapshotOnce } = await import("./sources/snapshots");

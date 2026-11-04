@@ -54,3 +54,14 @@ malformed/omitted counts. The server never writes snapshots. Static assets are
 resolved relative to the package, so the executable works from another working
 directory. `prepack` builds the local frontend; the package allowlist includes
 only runtime source/assets, licenses, README and optional service examples.
+
+## Final validation boundaries
+
+Each input log path can override the state-directory default independently.
+The 10k-line startup test covers a real loopback server and SSE append; an
+independent cold process check includes the production command's client build.
+The optional portable browser verifier only permits append tests against DEMO
+sources in a matching temporary directory, blocks cross-origin requests and
+emits machine-readable results. It requires an existing external Playwright
+installation rather than adding a project dependency. See KNOWN_ISSUES.md for
+unverified deployment/platform boundaries and extreme-volume limitations.
