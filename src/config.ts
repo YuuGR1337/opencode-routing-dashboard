@@ -17,6 +17,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, args = process.
     "stats-enabled": "ORD_STATS_ENABLED",
     "max-records": "ORD_MAX_RECORDS",
     demo: "ORD_DEMO",
+    config: "ORD_CONFIG",
+    bind: "ORD_BIND",
+    "token-env": "ORD_TOKEN_ENV",
+    "redact-prompts": "ORD_REDACT_PROMPTS",
   };
   let help = false;
   for (let i = 0; i < args.length; i++) {
@@ -48,10 +52,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, args = process.
   if (!["true", "false", "1", "0"].includes(enabled)) throw new Error("Invalid ORD_STATS_ENABLED");
   const demo = values.ORD_DEMO ?? "false";
   if (!["true", "false", "1", "0"].includes(demo)) throw new Error("Invalid ORD_DEMO");
+  const redactPrompts = values.ORD_REDACT_PROMPTS ?? "false";
+  if (!["true", "false"].includes(redactPrompts)) throw new Error("Invalid ORD_REDACT_PROMPTS");
+  const tokenEnv = values.ORD_TOKEN_ENV;
+  if (tokenEnv !== undefined && !/^[A-Za-z_][A-Za-z0-9_]*$/.test(tokenEnv)) throw new Error("Invalid ORD_TOKEN_ENV");
   const stateDir = expand(values.ORD_STATE_DIR ?? join(homedir(), ".local/state/opencode"));
   return {
     help,
     demo: demo === "true" || demo === "1",
+    configFile: values.ORD_CONFIG ? expand(values.ORD_CONFIG) : undefined,
+    bind: values.ORD_BIND ?? "127.0.0.1",
+    tokenEnv,
+    redactPrompts: redactPrompts === "true",
     stateDir,
     sourcePaths: {
       observe: expand(values.ORD_OBSERVE_PATH ?? join(stateDir, "jev-observe.jsonl")),

@@ -26,7 +26,7 @@ Bun (>=1.2) + TypeScript (strict) + React. Server: `Bun.serve` with SSE. No data
 ## Conventions
 - Parse every external input (JSONL lines, `opencode stats --json`) at the boundary with a schema; unknown fields are kept, malformed lines are counted and skipped, never crash.
 - Pure functions for aggregation in `src/core/`; IO only in `src/server/` and `src/sources/`.
-- Bind `127.0.0.1` only. Never send data off the machine. Never read credential files.
+- Dashboard binds `127.0.0.1` only. Remote agents default to `127.0.0.1` and SSH tunnels; an explicit non-loopback bind requires a token. Only explicitly configured source endpoints may receive dashboard connections; never forward source data to unrelated services. This scoped remote-source exception was authorized by the maintainer for v0.2. Never read credential files.
 - Paths are configurable; never hardcode a username or home.
 - Fixtures are anonymized; never commit real prompts or session IDs.
 - Small commits, conventional messages (`feat:`, `fix:`, `test:`, `docs:`).

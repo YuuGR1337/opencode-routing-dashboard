@@ -36,3 +36,37 @@ test("demo is explicit, validated and overridden by flags", () => {
   expect(loadConfig({}, ["--demo=true"]).demo).toBe(true);
   expect(() => loadConfig({ ORD_DEMO: "invalid" }, [])).toThrow();
 });
+
+test("agent options are parsed without exposing token values", () => {
+  const config = loadConfig({ MY_TOKEN: "secret-value" }, [
+    "--config",
+    "remote.json",
+    "--bind",
+    "127.0.0.2",
+    "--token-env",
+    "MY_TOKEN",
+    "--redact-prompts",
+    "true",
+  ]);
+  expect(config.configFile).toBe("remote.json");
+  expect(config.bind).toBe("127.0.0.2");
+  expect(config.tokenEnv).toBe("MY_TOKEN");
+  expect(config.redactPrompts).toBe(true);
+  expect(JSON.stringify(config)).not.toContain("secret-value");
+  expect(loadConfig({}, []).bind).toBe("127.0.0.1");
+  expect(() => loadConfig({}, ["--redact-prompts", "yes"])).toThrow();
+});
+
+test("CLI rejects recursive agent config and non-loopback dashboard binds", async () => {
+  for (const args of [
+    ["agent", "--config", "x"],
+    ["serve", "--bind", "0.0.0.0"],
+  ]) {
+    const proc = Bun.spawn([process.execPath, "src/cli.ts", ...args], {
+      env: { PATH: process.env.PATH },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(await proc.exited).toBe(1);
+  }
+});

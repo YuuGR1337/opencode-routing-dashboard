@@ -51,7 +51,7 @@ The orchestrator owns milestone-wide typecheck, lint and tests after reconciling
 
 ### OpenCode subprocess boundary
 
-Source inspection of OpenCode's stats handler shows a local stats API call. Ensuring a standalone OpenCode server can otherwise initiate catalog downloads. The dashboard's child runs with `--standalone`, `OPENCODE_DISABLE_MODELS_FETCH=1`, `OPENCODE_DISABLE_AUTOUPDATE=1`, `OPENCODE_PURE=1`, `OPENCODE_DISABLE_LSP_DOWNLOAD=1`, and no `OTEL_EXPORTER_*` environment variables.
+The original v0.1 verification used `--standalone`, feature-specific download controls and `OPENCODE_PURE`. The v0.2 installed-build check below confirms `--standalone` but finds no support for `OPENCODE_PURE`, which is now removed. Feature-specific controls and exporter stripping are not an OS network sandbox.
 
 These are child-process controls, not an OS network sandbox or control of unrelated OpenCode services. Installed plugins and upstream CLI behavior remain external trust boundaries; fixture/file mode never spawns the CLI. No stats were executed on real user data during verification.
 
@@ -130,3 +130,25 @@ PLAYWRIGHT_MODULE_PATH=<existing-playwright>/index.mjs CHROMIUM_PATH=/usr/bin/ch
 [CI check](https://github.com/crisesarmiento/opencode-routing-dashboard/actions/runs/41822906254/job/126550242459).
 Only after that success were all M0–M6 (including M4a) boxes signed off in PLAN.md.
 The final sign-off commit changes documentation only; the same full local code evidence remains valid.
+
+## v0.2 real OpenCode 2.2.5 check (2026-11-04)
+
+- Installed `opencode --version` → `opencode v2.2.5`, exit 0. `stats --help` → exit 0 and lists `--json`, `--models`, `--tools`, `--cost`; global `--standalone` is documented as a private server instead of the background service.
+- The installed build's `OPENCODE_*` binary token list contains no `OPENCODE_PURE`. Removed it from the child environment rather than claiming an unverified safety control.
+- Red regression: `bun test test/stats.test.ts` → exit 1, unsupported variable present (`expected false, received true`). After removal: exit 0, 6 tests.
+- Executed the real binary with the exact child arguments `stats --json --models --tools --cost --standalone`, a fresh empty HOME and all XDG roots under `/tmp/opencode`, `env -i`, and the three feature-specific download-disable variables. Exit 0 within a 25-second deadline. `parseStats` accepted the output: sessions 0, steps 0, models 0.
+- This verifies the installed executable and empty-profile response contract, **not real user statistics**, subscription limits, populated service behavior, installed user plugins, or an OS-enforced no-network guarantee. No credential files, real prompts or user session IDs were read.
+
+### Real Orca provenance check
+
+- Read-only inspection of the installed Orca 1.4.247 launcher chain and relevant bundled agent/database-discovery code, plus worktree metadata, established the Linux paths documented in ARCHITECTURE.md. No services or configuration were changed.
+- Jev log field inspection established that client identity is absent; prompt mentions of Orca were not used as classification evidence. No real log records, prompt text, session IDs or credentials are committed or included in the demo.
+- The shared-state/directory mapping is verified; a full live argv trace, remote Mac SSH/Tailscale session, effective per-process slim preset and macOS paths are not verified.
+
+### M7 — remote foundation
+
+- Tests-first agent/config, remote validation/reconnect, federation identity and directory-provenance tests failed against behavioral stubs before implementation. Gate regressions then failed for tunneled Host ports, unsupported retention, proxy forwarding and per-source payload isolation before their fixes.
+- Source-reviewed and runtime-probed security gate: PASS after SSH Host, proxy fail-closed, retention, history budgets and incremental SSE corrections. No token is returned in public state; a fake-proxy subprocess regression observes zero proxy hits.
+- Reconstructed the M7-only staged tree under `/tmp/opencode` (excluding later analytics/UI/report work) and verified the actual milestone artifact: `bun run typecheck` exit 0, `bun run lint` exit 0, `bun test` exit 0 (**131 tests / 19 files**), `bun run build` exit 0. Two staging-only formatting differences were corrected before the passing run.
+- Real agent test uses 10,000 fixture-derived records: HTTP source, initial SSE snapshot and appended delta pass; a focused run measured 387 ms append-to-delta. This is a point measurement, not unlimited-history or multi-machine performance evidence.
+- Remote 10k SSE parsing, redirect refusal, oversized HTTP/SSE/history, timeout, abort, epoch replacement, stale retention, source collisions and duplicate endpoint suppression are fixture/fake-peer tests, not real SSH or Tailscale deployment tests.

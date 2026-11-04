@@ -5,6 +5,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+### Added in 0.2.0
+- M7: read-only HTTP/SSE agents, explicit remote source configuration, SSH-first authenticated transport, per-source health/retry and configured Orca directory provenance.
+
+### Fixed in 0.2.0
+- Verify OpenCode 2.2.5 stats flags; retain supported --standalone and remove unsupported OPENCODE_PURE.
+
 ### Added
 - M1: validated, unknown-field-preserving parsers for observe, route, permissions and stats; malformed JSONL counting and fixture tests.
 - M2: deterministic message joins, context agreement matrix and confidence histogram, usage breakdowns, permission/error rollups and honest unavailable-data readouts.
