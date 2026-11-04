@@ -184,3 +184,9 @@ The final sign-off commit changes documentation only; the same full local code e
 - Red: `bun test test/ticker-alerts.test.tsx` exit 1 (1 pass, 2 behavioral failures). Green: exit 0, 3 tests (source/kind labels, selected-source scope, absence when unknown/inactive). Real-agent DEMO browser checks confirm the strip, panel button and selected-source behavior; screenshots at both required sizes were opened/reviewed against DESIGN.
 - Final reconciled checks after M11: typecheck exit 0, lint exit 0, **246 tests / 36 files** exit 0, build exit 0, diff-check exit 0. Parent reran the committed canonical-fixture browser verifier with append and exchange checks: **134 passed / 0 failed / 0 skipped**, exit 0; report `/tmp/opencode/ord-ui-m11-report.json`. Test server was stopped by cleanup.
 - M11 is a separate acceptance milestone/commit because the earlier milestones were already published; no shared history was rewritten. Final CI status is recorded in PR #3.
+
+### M12 — clean-runner test portability
+
+- First final-head CI (`1c84a14`) failed: [run 41871192389](https://github.com/crisesarmiento/opencode-routing-dashboard/actions/runs/41871192389/job/126718390416), **238 passed / 8 failed**. All eight failures were `ENOENT` from `mkdtemp('/tmp/opencode/...')`: that directory is pre-created in this development-agent environment but not a clean GitHub runner.
+- The fix uses the OS temporary directory for those test fixtures, rather than creating an agent-specific directory in CI or weakening assertions. Runtime/UI code is unchanged, so the prior 134-check browser and screenshot evidence remains valid.
+- Six test files changed only imports and eight temporary-directory prefixes. Focused run: 28 tests pass. Parent final run after reconciliation: typecheck/lint/**246 tests, 36 files**/build/diff-check all exit 0. Final head CI is rerun on PR #3; no browser rerun is needed for this test-only correction.

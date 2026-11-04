@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadLocalSourceConfig, loadSourceConfig, parseSourceConfig } from "../src/sources/source-config";
 
@@ -17,7 +18,7 @@ test("rejects credential directory paths before opening", async () => {
 });
 
 test("local metadata file accepts only client and validated directory rules", async () => {
-  const dir = await mkdtemp("/tmp/opencode/local-source-");
+  const dir = await mkdtemp(join(tmpdir(), "ord-local-source-"));
   const path = join(dir, "metadata.json");
   try {
     const value = { client: "TUI" as const, directoryRules: [{ prefix: "/work/orca", client: "Orca" as const }] };

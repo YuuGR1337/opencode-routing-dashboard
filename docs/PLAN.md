@@ -37,3 +37,5 @@ CI on the PR head; its result is recorded in the PR, not presumed from local run
 No release, merge, tag, registry publish or deployment sign-off is implied.
 
 - [x] **M11 Acceptance integration** — expose active alert evidence directly in the ticker as well as the badge/panel, with classifier/provider labels. Tests first and both-size fixture screenshots; final typecheck/lint/246 tests/build and 134 browser checks pass. This closes an original acceptance detail, not a new analytics feature.
+
+- [x] **M12 Portable test setup** — CI exposed eight ENOENT setup failures because new tests assumed this agent environment's pre-created `/tmp/opencode`. Tests now use the OS temporary directory without weakening any assertion; final local checks pass (246 tests). Final head CI remains the PR acceptance gate. No runtime or UI behavior changes.

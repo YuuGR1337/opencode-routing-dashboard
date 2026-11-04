@@ -1,11 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadAnalyticsSettings, notifyAlert } from "../src/sources/analytics";
 
 describe("analytics IO", () => {
   test("loads explicit bounded settings, rejects invalid and credential-like files", async () => {
-    const dir = await mkdtemp("/tmp/opencode/analytics-");
+    const dir = await mkdtemp(join(tmpdir(), "ord-analytics-"));
     try {
       const file = join(dir, "analytics.json");
       await writeFile(

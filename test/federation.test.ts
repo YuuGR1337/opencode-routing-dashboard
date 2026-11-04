@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "../src/config";
 import type { DashboardInput } from "../src/core/aggregate";
@@ -168,7 +169,7 @@ test("uses explicit clock consistently across source and combined state", () => 
 });
 
 test("dashboard connects configured aliases, reports duplicate epoch and retains stale data", async () => {
-  const dir = await mkdtemp("/tmp/opencode/federation-");
+  const dir = await mkdtemp(join(tmpdir(), "ord-federation-"));
   const remoteInput = input();
   remoteInput.observe[0]!.dir = "/work/orca/project";
   const envelope = { version: 1, epoch: "same-peer", seq: 1, input: remoteInput };

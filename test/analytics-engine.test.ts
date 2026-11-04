@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "../src/config";
 import { aggregate } from "../src/core/aggregate";
@@ -204,7 +205,7 @@ test("engine holds, repeats, expires and bounds fired alerts without inventing c
 });
 
 test("rejects sensitive ancestor and resolved symlink paths before reading", async () => {
-  const dir = await mkdtemp("/tmp/opencode/check-");
+  const dir = await mkdtemp(join(tmpdir(), "ord-check-"));
   try {
     const restricted = join(dir, ".ssh");
     await mkdir(restricted);

@@ -86,6 +86,9 @@ local readers ---------------------------------------------------+   -> same-ori
 ### Verification ownership
 Runtime lane: fake-agent auth/Host/method/origin/redirect/bounds/reconnect/stop tests and source identity collisions. Analytics lane: fixture-based range/unknown/overlap/debounce/CSV-injection tests. Designer: view smoke tests and both screenshot sizes. Integrator: reconcile artifacts, broad checks once per pass, review screenshots, runtime evidence matrix and branch CI. macOS requires a real runner; Linux evidence does not substitute for it.
 
+M12 corrects test setup portability only: temporary fixture directories use the
+OS temporary root and do not rely on a pre-created agent-specific directory.
+
 ### Slim preset evidence
 
 Official upstream source (`alvinunreal/oh-my-opencode-slim`, `master`) defines the

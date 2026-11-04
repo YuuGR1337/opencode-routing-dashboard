@@ -1,11 +1,12 @@
 import { expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "../src/config";
 import { startApp } from "../src/server/index";
 
 test("server exposes unknown quota and debounced alerts without further writes", async () => {
-  const dir = await mkdtemp("/tmp/opencode/analytics-integration-");
+  const dir = await mkdtemp(join(tmpdir(), "ord-analytics-integration-"));
   let app: Awaited<ReturnType<typeof startApp>> | undefined;
   try {
     const settings = join(dir, "analytics.json");
@@ -50,7 +51,7 @@ test("server exposes unknown quota and debounced alerts without further writes",
 });
 
 test("server analytics includes retained local events omitted from federated UI detail", async () => {
-  const dir = await mkdtemp("/tmp/opencode/analytics-retained-");
+  const dir = await mkdtemp(join(tmpdir(), "ord-analytics-retained-"));
   let app: Awaited<ReturnType<typeof startApp>> | undefined;
   try {
     const observe =

@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "../src/config";
 import { aggregate } from "../src/core/aggregate";
@@ -16,7 +17,7 @@ test("JSONC parser respects quoted comments, escapes, trailing commas and unreso
 });
 
 test("monitor samples startup and changes, reports missing and does not invent history", async () => {
-  const dir = await mkdtemp("/tmp/opencode/presets-");
+  const dir = await mkdtemp(join(tmpdir(), "ord-presets-"));
   const path = join(dir, "slim.json");
   const seen: { changes: { preset: string; at: number }[]; status: { status: string } }[] = [];
   let monitor: Awaited<ReturnType<typeof startPresetMonitor>> | undefined;
@@ -91,7 +92,7 @@ test("preset metadata roundtrips remotely and sampled attribution never marks qu
 });
 
 test("agent source envelope carries explicit sampled metadata", async () => {
-  const dir = await mkdtemp("/tmp/opencode/presets-agent-");
+  const dir = await mkdtemp(join(tmpdir(), "ord-presets-agent-"));
   let agent: Awaited<ReturnType<typeof startAgent>> | undefined;
   try {
     const preset = join(dir, "slim.json");
