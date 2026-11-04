@@ -52,3 +52,11 @@ Subscription providers (e.g. `claude-code`) report `cost: 0`.
 
 ### Not available (as of opencode 2.2.5)
 No explicit fallback event in logs; agent-per-step is not in Jev logs (only the session's agent at context time).
+
+## Evidence limits and implementation decisions
+- Actual delegated agent, execution model/provider/variant, per-message tokens and cost are **not available** in the supplied logs. The observe `model` is the classifier model, not the execution model. Render unavailable fields explicitly; never attribute aggregate stats to a message.
+- Agreement uses only a recorded context agent and is labeled **context agreement**, not delegated-agent agreement. Its denominator excludes missing suggestions or missing agents. Routing injection is a recommendation, not proof that the suggested agent ran.
+- Fallback hits are **not detectable** with these sources: even a preset's first choice cannot establish a fallback without an execution model linked to the message. Do not read the active preset merely to fabricate a comparison; show `not detectable` and no numeric fallback rate.
+- Join observe and route only when both session and non-null message match. Null-message observations and session-only exceptions remain separate events rather than being guessed into a match.
+- Missing log files are normal empty states. Malformed records count separately by source; unknown valid fields survive parsing and remain available for inspection.
+- The SPEC takes precedence where the requested display implies evidence the documented sources do not contain. These limits preserve the read-only, evidence-based goal rather than inventing execution data.
