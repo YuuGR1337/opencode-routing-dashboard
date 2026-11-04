@@ -96,6 +96,7 @@ No explicit fallback event in logs; agent-per-step is not in Jev logs (only the 
 - Alerts derive only from explicit rate-limit, quota-exhaustion or fallback evidence, with configurable hold/debounce and minimum repeat interval. Unknown never fires. UI ticker/panel are always available; desktop notifications are opt-in (`notify-send` Linux, `osascript` macOS), argument-array based, and failures cannot crash ingestion.
 
 ### Replay, exports and existing issues
+- The ticker exposes active alert evidence directly (source and precise classifier/provider kind), in addition to the alert panel and navigation badge. No idle animation or invented missing signal is added.
 - Replay is a client cursor over a retained past session: play/pause/speed, event stepping, timeline and Call in focus share one cursor. Expose retention/omission limits; replay is not durable transport history.
 - UI GET downloads and CLI `export --from --to --format md|csv` report validated ranges. Keep source identity, range and coverage; exclude out-of-range events and label separately ranged stats. Unknown CSV cells are empty with status/reason. Escape formula-leading cells. Server downloads never write report files.
 - Restore focus after selected-event eviction; retain/reconcile orphaned filter options; visibly count rejected browser payloads; adapt sparse patch bay spacing without invented calls. Verify real OpenCode 2.2.5 stats flags and remove unsupported flags/environment controls.

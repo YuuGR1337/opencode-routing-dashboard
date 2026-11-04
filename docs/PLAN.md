@@ -32,6 +32,8 @@ Pass 2: M8 adds real evidence reducers; M9 integrates and verifies the exchange.
 Pass 3: M10 closes report/packaging/docs and final validation. Security and financial correctness are never deferred.
 
 Boxes record completed implementation and local milestone evidence (M7: 131 tests,
-M8: 155, M9: 239; final v0.2: 243). Final acceptance additionally requires green
+M8: 155, M9: 239, M10: 243; final with M11: 246). Final acceptance additionally requires green
 CI on the PR head; its result is recorded in the PR, not presumed from local runs.
 No release, merge, tag, registry publish or deployment sign-off is implied.
+
+- [x] **M11 Acceptance integration** — expose active alert evidence directly in the ticker as well as the badge/panel, with classifier/provider labels. Tests first and both-size fixture screenshots; final typecheck/lint/246 tests/build and 134 browser checks pass. This closes an original acceptance detail, not a new analytics feature.

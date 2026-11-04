@@ -115,3 +115,12 @@ Accepted adaptations:
   share the period picker and use same-origin GET downloads only.
 
 No new palette, card grid, glass effect, idle animation or UI dependency was added.
+
+## M11 acceptance review
+
+Opened/reviewed `m11-alert-ticker-{1440x900,1024x768}.png`, captured with the
+source-backed DEMO agents. The active-alert strip uses the existing 22 px row,
+hairlines, amber glyph/source labels and precise classifier/execution text.
+It belongs to the ticker, opens the existing alert drawer, follows source
+selection and disappears without active evidence. No idle motion or new visual
+system is introduced; the one-row increase in ticker controls is accepted.

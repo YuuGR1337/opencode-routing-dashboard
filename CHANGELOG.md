@@ -16,6 +16,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 - Bound remote records, snapshots and stream frames; isolate over-budget sources without starving healthy ones. Tokens remain server-side environment references, never browser state.
 
 ### Fixed in 0.2.0
+- M11: expose active alert evidence directly in the ticker, scoped to the selected source and linked to the existing alert panel.
 - Support differing SSH tunnel ports in the agent Host check and reject incompatible agent retention settings before startup.
 - Verify installed OpenCode 2.2.5 stats output in an isolated empty profile; retain supported `--standalone` and remove unsupported `OPENCODE_PURE`.
 - Restore focus on selected-event eviction, retain orphaned filter choices, expose rejected UI payload counts and adapt sparse patch bays.

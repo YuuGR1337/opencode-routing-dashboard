@@ -177,3 +177,10 @@ The final sign-off commit changes documentation only; the same full local code e
 - `bun pm pack --destination /tmp/opencode --quiet` exit 0. Reviewed 0.2.0 archive inventory: runtime source, built local assets/fonts, licenses, README and optional existing systemd examples only; no fixtures, tests, real logs or credential files. No registry publication or service installation occurred.
 - Final architectural/security review passed, including the local-provenance correction. macOS, physical Mac↔PC SSH/Tailscale, actual desktop notifications and real subscription limits remain unverified. See KNOWN_ISSUES for epoch deduplication scope, partial evidence, sampled presets and incomplete report ranges.
 - Branch CI is a separate final gate recorded on the PR head. Local validation does not claim CI success in advance. The PR targets develop and is not merged; no tags are created.
+
+### M11 — acceptance integration
+
+- Final acceptance audit found active alerts were visible in the badge/panel but not directly in the ticker. Added the missing ticker strip using the same validated alert view, without a new detector or side effect.
+- Red: `bun test test/ticker-alerts.test.tsx` exit 1 (1 pass, 2 behavioral failures). Green: exit 0, 3 tests (source/kind labels, selected-source scope, absence when unknown/inactive). Real-agent DEMO browser checks confirm the strip, panel button and selected-source behavior; screenshots at both required sizes were opened/reviewed against DESIGN.
+- Final reconciled checks after M11: typecheck exit 0, lint exit 0, **246 tests / 36 files** exit 0, build exit 0, diff-check exit 0. Parent reran the committed canonical-fixture browser verifier with append and exchange checks: **134 passed / 0 failed / 0 skipped**, exit 0; report `/tmp/opencode/ord-ui-m11-report.json`. Test server was stopped by cleanup.
+- M11 is a separate acceptance milestone/commit because the earlier milestones were already published; no shared history was rewritten. Final CI status is recorded in PR #3.

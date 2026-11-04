@@ -80,6 +80,7 @@ local readers ---------------------------------------------------+   -> same-ori
 - Pure source/provenance, quota, preset comparison, alert and report functions belong in `src/core/`; source configuration, preset observation, remote transport and optional notification subprocesses stay in IO modules. No database, new service or dependency is required.
 - Source IDs are assigned by dashboard config, never trusted from peers. Event/session joins never cross them. Stats/history preserve source ranges; differing ranges do not produce combined money totals. Quota and presets require timestamped attribution, with explicit partial/unavailable coverage. A current preset is not historical evidence.
 - UI remains a switchboard with source selector/health and exchange panels for alerts, quota, comparisons and replay. Replay operates on retained client events, not network replay. Exports use shared pure range/report logic for CLI and HTTP GET.
+- M11 acceptance integration consumes the same validated alert view in the ticker, badge and panel; it adds no new detection path, transport or notification side effect.
 - Orca shares the OpenCode/Jev state inputs; client provenance requires explicit metadata or configured directory rules, not prompt text. Verified Linux installation details follow below; all paths remain configurable.
 
 ### Verification ownership

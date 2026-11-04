@@ -531,6 +531,53 @@ button {
 .ticker {
   min-height: 0;
 }
+.ticker-alerts {
+  display: flex;
+  align-items: center;
+  height: var(--row);
+  min-height: var(--row);
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  font-size: 11px;
+}
+.ticker-alerts-label {
+  flex: none;
+  padding: 0 12px;
+  color: var(--warn);
+  font: 700 11px var(--label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.ticker-alerts-list {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.ticker-alert {
+  padding: 0 12px;
+  border-left: 1px solid var(--line);
+  color: var(--ink);
+}
+.ticker-alert b {
+  color: var(--warn);
+  font-weight: 400;
+}
+.ticker-alerts button {
+  flex: none;
+  height: 100%;
+  padding: 0 12px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: transparent;
+  color: var(--warn);
+  font: 700 11px var(--label);
+  cursor: pointer;
+}
+.ticker-alerts button:hover {
+  background: var(--bg);
+}
 .ticker .panel-title .keys {
   float: right;
 }

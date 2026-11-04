@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DashboardState, FlowEvent } from "../src/core/aggregate";
-import { alertsView, DEFAULT_PERIOD, type Period, presetView, quotaView } from "./analytics";
+import { ALERT_LABEL, alertsView, DEFAULT_PERIOD, type Period, presetView, quotaView } from "./analytics";
 import { livePrompts } from "./clock";
 import { COMBINED, type ExchangeState, resolveView } from "./exchange";
 import { exportPlan } from "./export";
@@ -609,13 +609,32 @@ export function DashboardShell({
         onReplayStart={startReplay}
         waiting={view.waiting && src ? { id: src.id, status: src.status, detail: src.detail } : undefined}
         filterBar={
-          <FilterBar
-            events={vs.events}
-            filters={filters}
-            known={known}
-            matched={matched.length}
-            onChange={setFilters}
-          />
+          <>
+            {alerts.rows.some((alert) => alert.active) ? (
+              <div className="ticker-alerts" aria-label="active alerts">
+                <span className="ticker-alerts-label">▲ alerts</span>
+                <div className="ticker-alerts-list">
+                  {alerts.rows
+                    .filter((alert) => alert.active)
+                    .map((alert, index) => (
+                      <span className="ticker-alert" key={`${alert.sourceId}/${alert.kind}/${index}`}>
+                        <b>{alert.sourceId}</b> · {ALERT_LABEL[alert.kind]}
+                      </span>
+                    ))}
+                </div>
+                <button type="button" aria-controls="drawer-alerts" onClick={() => openDrawer("alerts")}>
+                  view alerts →
+                </button>
+              </div>
+            ) : null}
+            <FilterBar
+              events={vs.events}
+              filters={filters}
+              known={known}
+              matched={matched.length}
+              onChange={setFilters}
+            />
+          </>
         }
         onSelect={openDetail}
       />
