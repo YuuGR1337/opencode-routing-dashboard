@@ -22,11 +22,16 @@ No registry publication, service installation, merge, version bump or release is
 Branch `feat/remote-sources-v2` from develop; PR to develop, no merge or tags.
 One implementation commit per milestone, tests fail before implementation. SPEC and ARCHITECTURE above define evidence/security constraints before coding.
 
-- [ ] **M7 Remote foundation** — validated source configuration, shared local collector, headless agent and mandatory non-loopback authentication, bounded remote full-replacement transport, source identity/health/backoff. Tests: auth/Host/method/origin, redirect/bounds/timeouts/restart/stale/shutdown and cross-source collision. Document verified Orca/OpenCode interfaces and stats flags.
-- [ ] **M8 Evidence analytics** — explicit/configured client/worktree provenance, observed preset changes and period comparisons, user-configured 5 h/weekly quota estimates, debounced evidence-based alerts and opt-in desktop delivery. Tests: unknown attribution, ranges/overlap, subscription zero-cost, alert timing and preset coverage.
-- [ ] **M9 Exchange UI and downloads** — combined/source selector and health, alerts/quota/presets panels, synchronized session replay, eviction focus/orphan filters/rejected payload counter/sparse patch bay fixes; shared range reports and GET downloads keep the export panel functional in this commit. Smoke/render and browser behavior tests first; PC + Orca + local fixture demo and screenshots at both required sizes.
-- [ ] **M10 CLI and delivery** — range Markdown/CSV CLI collection across configured sources, formula safety/unknown coverage evidence, 0.2.0 package bump, README/CHANGELOG/KNOWN_ISSUES/verification matrix, final screenshots and green local checks/CI. PR records actual vs fixture checks and macOS limits.
+- [x] **M7 Remote foundation** — validated source configuration, shared local collector, headless agent and mandatory non-loopback authentication, bounded remote full-replacement transport, source identity/health/backoff. Tests: auth/Host/method/origin, redirect/bounds/timeouts/restart/stale/shutdown and cross-source collision. Document verified Orca/OpenCode interfaces and stats flags.
+- [x] **M8 Evidence analytics** — explicit/configured client/worktree provenance, observed preset changes and period comparisons, user-configured 5 h/weekly quota estimates, debounced evidence-based alerts and opt-in desktop delivery. Tests: unknown attribution, ranges/overlap, subscription zero-cost, alert timing and preset coverage.
+- [x] **M9 Exchange UI and downloads** — combined/source selector and health, alerts/quota/presets panels, synchronized session replay, eviction focus/orphan filters/rejected payload counter/sparse patch bay fixes; shared range reports and GET downloads keep the export panel functional in this commit. Smoke/render and browser behavior tests first; PC + Orca + local fixture demo and screenshots at both required sizes.
+- [x] **M10 CLI and delivery** — range Markdown/CSV CLI collection across configured sources, formula safety/unknown coverage evidence, 0.2.0 package bump, README/CHANGELOG/KNOWN_ISSUES/verification matrix, final screenshots and green local checks. PR records final branch CI, actual vs fixture checks and macOS limits.
 
 Pass 1: M7 makes the remote whole work without analytics or UI pretending to be complete.
 Pass 2: M8 adds real evidence reducers; M9 integrates and verifies the exchange.
 Pass 3: M10 closes report/packaging/docs and final validation. Security and financial correctness are never deferred.
+
+Boxes record completed implementation and local milestone evidence (M7: 131 tests,
+M8: 155, M9: 239; final v0.2: 243). Final acceptance additionally requires green
+CI on the PR head; its result is recorded in the PR, not presumed from local runs.
+No release, merge, tag, registry publish or deployment sign-off is implied.

@@ -1,7 +1,7 @@
 # SPEC
 
 ## Goal
-Local, real-time view of OpenCode routing for any user. Read-only over local files and the `opencode` CLI.
+Local-first, real-time view of OpenCode routing for any user. Read-only over local files, the `opencode` CLI and explicitly configured remote agents; the dashboard itself stays on loopback.
 
 ## Functional requirements
 1. **Live prompt flow**: per user message: time, session, Jev suggestion (role, confidence, needs_oracle), route decision (injected/skipped + reason), agent that ran, model + variant, latency.

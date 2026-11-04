@@ -6,13 +6,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 ## [Unreleased]
 
 ### Added in 0.2.0
-- M9: multi-source exchange selector, configured local/remote client provenance, analytics panels, synchronized replay and GET Markdown/CSV reports with coverage and formula safety.
-- M9: fix eviction focus, orphan filters, rejected payload counter and sparse bay layout; add source-backed demo and both-size screenshots.
-- M8: evidence-aware quota/preset analytics with explicit source coverage, sampled config timelines, cached retained-state reducers and debounced classifier/provider alerts with opt-in desktop delivery.
-- M7: read-only HTTP/SSE agents, explicit remote source configuration, SSH-first authenticated transport, per-source health/retry and configured Orca directory provenance.
+- M7: read-only headless agents, SSH-first remote sources, explicit authenticated non-loopback binds, bounded HTTP/SSE collection, reconnect health and namespaced source identities.
+- M8: user-configured subscription quota estimates, evidence-aware preset comparisons, sampled slim config timelines, debounced alerts and opt-in desktop notifications.
+- M9: source selection and health, exchange analytics panels and retained-session replay synchronized with Call in focus.
+- M10: source/range-aware Markdown and CSV reports through CLI and GET downloads, with formula escaping and explicit incomplete-range coverage.
+
+### Security in 0.2.0
+- Refuse wildcard agent binds, require strong bearer tokens outside loopback, reject browser-origin agent requests and prevent redirect/proxy credential forwarding.
+- Bound remote records, snapshots and stream frames; isolate over-budget sources without starving healthy ones. Tokens remain server-side environment references, never browser state.
 
 ### Fixed in 0.2.0
-- Verify OpenCode 2.2.5 stats flags; retain supported --standalone and remove unsupported OPENCODE_PURE.
+- Support differing SSH tunnel ports in the agent Host check and reject incompatible agent retention settings before startup.
+- Verify installed OpenCode 2.2.5 stats output in an isolated empty profile; retain supported `--standalone` and remove unsupported `OPENCODE_PURE`.
+- Restore focus on selected-event eviction, retain orphaned filter choices, expose rejected UI payload counts and adapt sparse patch bays.
+
+### Evidence limits in 0.2.0
+- Missing execution, fallback and per-message usage remain unknown. Preset-file samples are not proof of runtime selection; classifier rate limits are distinct from execution-provider limits. No subscription limits are invented.
 
 ### Added
 - M1: validated, unknown-field-preserving parsers for observe, route, permissions and stats; malformed JSONL counting and fixture tests.
