@@ -7,8 +7,11 @@
   "bin": {
     "opencode-routing-dashboard": "src/cli.ts"
   },
+  "files": ["src", "dist", "contrib", "README.md", "LICENSE"],
   "scripts": {
     "build": "bun scripts/build.ts",
+    "prepack": "bun run build",
+    "snapshot": "bun src/cli.ts snapshot",
     "start": "bun run build && bun src/cli.ts",
     "dev": "bun run build && bun --watch src/cli.ts",
     "test": "bun test",

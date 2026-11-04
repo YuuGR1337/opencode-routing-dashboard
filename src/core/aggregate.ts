@@ -13,6 +13,13 @@ export type DashboardInput = {
   sources?: Record<Source, { status: "ok" | "missing" | "error"; path: string; detail?: string }>;
   statsStatus?: { status: "ok" | "unavailable" | "error" | "disabled"; detail?: string; fetchedAt?: string };
   history?: { date: string; stats: StatsRecord }[];
+  historyStatus?: {
+    status: "ok" | "missing" | "error";
+    path: string;
+    malformed: number;
+    omitted: number;
+    detail?: string;
+  };
 };
 type Usage = {
   steps: number;
@@ -90,6 +97,7 @@ export type DashboardState = {
   history: { date: string; stats: StatsRecord }[];
   sources: DashboardInput["sources"] | null;
   statsStatus: DashboardInput["statsStatus"] | null;
+  historyStatus: DashboardInput["historyStatus"] | null;
   fallback: "not detectable";
 };
 const emptyUsage = (): Usage => ({
@@ -291,6 +299,7 @@ export function aggregate(
     history: input.history ?? [],
     sources: input.sources ?? null,
     statsStatus: input.statsStatus ?? null,
+    historyStatus: input.historyStatus ?? null,
     fallback: "not detectable",
   };
   const encoder = new TextEncoder();

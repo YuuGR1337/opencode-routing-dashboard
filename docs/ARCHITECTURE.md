@@ -38,3 +38,19 @@ listener and aborts/reaps its child on timeout or shutdown. The HTTP listener is
 explicitly loopback-only, checks Host, blocks static symlink escape, sends no
 CORS headers and uses a self-only CSP. See VERIFICATION.md for the subprocess
 network boundary and executable fixture tests.
+
+## Snapshot ownership and packaging
+
+`snapshot` is the only application writer. It captures validated stats, writes a
+private temporary file, syncs it and publishes it with an atomic non-replacing
+hard link. Concurrent captures keep the first complete snapshot for that local
+Monday; temporary files are cleaned up. The optional weekly user timer invokes
+this command independently of the HTTP service.
+
+`loadSnapshots` accepts only date-named regular files opened without following
+symlinks. History is bounded to 52 snapshots, 1 MiB per file and 2 MiB total.
+The server refreshes it every five seconds and exposes `historyStatus` with
+malformed/omitted counts. The server never writes snapshots. Static assets are
+resolved relative to the package, so the executable works from another working
+directory. `prepack` builds the local frontend; the package allowlist includes
+only runtime source/assets, licenses, README and optional service examples.

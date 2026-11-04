@@ -1172,3 +1172,19 @@ td.c-err {
   flex: none;
   white-space: nowrap;
 }
+
+/* snapshot source status inside the History view */
+.view .path {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.view .empty code {
+  color: var(--amber);
+}
+.view .empty > div + div {
+  margin-top: 3px;
+}
+.source-note {
+  margin: 0 0 8px;
+  font-size: 11px;
+}

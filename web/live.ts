@@ -111,6 +111,13 @@ function isState(v: unknown): v is DashboardState {
     (v.sources === null ||
       (object(v.sources) && source(v.sources.observe) && source(v.sources.route) && source(v.sources.permissions))) &&
     (v.statsStatus === null || statsStatus(v.statsStatus)) &&
+    (v.historyStatus === null ||
+      (object(v.historyStatus) &&
+        ["ok", "missing", "error"].includes(v.historyStatus.status as string) &&
+        string(v.historyStatus.path) &&
+        number(v.historyStatus.malformed) &&
+        number(v.historyStatus.omitted) &&
+        (v.historyStatus.detail === undefined || string(v.historyStatus.detail)))) &&
     v.fallback === "not detectable" &&
     v.events.every(event) &&
     v.permissions.every((item: unknown) => parsePermission(item) !== null) &&

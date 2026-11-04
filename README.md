@@ -98,7 +98,46 @@ The detail drawer preserves raw records and a session timeline of transmitted ev
 
 ![Context agreement at 1024×768](docs/screenshots/m4-agreement-1024x768.png)
 
-Optional systemd packaging and weekly snapshots are tracked under M5 in PLAN.md.
+## Weekly history
+
+Capture once from OpenCode or an explicit offline stats file:
+
+```sh
+bun run snapshot
+# Offline example, writes only to the selected snapshot directory:
+ORD_STATS_FILE=fixtures/stats.json ORD_SNAPSHOT_DIR=/path/to/snapshots bun run snapshot
+```
+
+The filename is the local Monday of the capture week. An existing week is never overwritten.
+The server only reads snapshots and refreshes History periodically. Up to 52 newest valid snapshots
+fit within file/total byte limits; malformed and omitted counts are visible in source status.
+Each snapshot keeps its own stats range, so overlapping ranges are not additive weekly totals.
+
+## Package and optional systemd user units
+
+```sh
+bun pm pack --destination /path/to/output
+```
+
+The archive includes an executable `opencode-routing-dashboard` bin, server source, built assets,
+local fonts/licenses and the units in `contrib/systemd/`. It excludes fixtures and tests. This PR
+does not publish a registry package: `bunx opencode-routing-dashboard` is the intended published
+entry point, not a claim that this branch is available on the registry.
+
+For an installed executable on Linux, copy the three example units into your user systemd directory,
+adjust their `PATH` and optional `ORD_*` environment settings, then explicitly enable the desired units:
+
+```sh
+mkdir -p ~/.config/systemd/user
+cp contrib/systemd/opencode-routing-dashboard* ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now opencode-routing-dashboard.service
+systemctl --user enable --now opencode-routing-dashboard-snapshot.timer
+```
+
+The snapshot timer uses `OnCalendar=weekly` and `Persistent=true`. Both services need Bun and the
+dashboard executable on their service `PATH`, and matching snapshot/state settings. No service is
+installed or enabled by the app. macOS can run the CLI directly; systemd units are Linux-only.
 
 ## License
 

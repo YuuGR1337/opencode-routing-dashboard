@@ -47,6 +47,7 @@ test("rejects malformed nested state before rendering", () => {
     { ...state, usage: { ...state.usage, totals: {} } },
     { ...state, stats: {} },
     { ...state, history: [{ date: "2026-01-01", stats: {} }] },
+    { ...state, historyStatus: { status: "ok", path: {}, malformed: 0, omitted: 0 } },
     { ...state, sources: { observe: {}, route: {}, permissions: {} } },
     { ...state, agreement: { ...state.agreement, matrix: { fixer: null } } },
   ];

@@ -3,10 +3,14 @@ import { join, resolve, sep } from "node:path";
 import type { Config } from "../config";
 import { aggregate, type DashboardInput, MAX_PAYLOAD_BYTES, type Source } from "../core/aggregate";
 import { parseLine } from "../core/schema";
+import { loadSnapshots } from "../sources/snapshots";
 import { startStats } from "../sources/stats";
 import { startTail } from "../sources/tail";
 
-export async function startApp(config: Config, options: { heartbeatMs?: number; staticDir?: string } = {}) {
+export async function startApp(
+  config: Config,
+  options: { heartbeatMs?: number; staticDir?: string; historyRefreshMs?: number } = {},
+) {
   const names: Source[] = ["observe", "route", "permissions"];
   const paths = {
     observe: join(config.stateDir, "jev-observe.jsonl"),
@@ -56,7 +60,27 @@ export async function startApp(config: Config, options: { heartbeatMs?: number; 
   const tails: Awaited<ReturnType<typeof startTail>>[] = [];
   let stats: Awaited<ReturnType<typeof startStats>> | undefined;
   let heartbeat: ReturnType<typeof setInterval> | undefined;
+  let historyTimer: ReturnType<typeof setTimeout> | undefined;
+  let stopped = false;
+  let historyLoading: Promise<void> | undefined;
+  const refreshHistory = async () => {
+    const result = await loadSnapshots(config.snapshotDir);
+    if (stopped) return;
+    const different =
+      JSON.stringify([input.history, input.historyStatus]) !== JSON.stringify([result.snapshots, result.status]);
+    input.history = result.snapshots;
+    input.historyStatus = result.status;
+    if (different) changed();
+  };
+  const scheduleHistory = () => {
+    historyTimer = setTimeout(() => {
+      historyLoading = refreshHistory().finally(() => {
+        if (!stopped) scheduleHistory();
+      });
+    }, options.historyRefreshMs ?? 5000);
+  };
   try {
+    await refreshHistory();
     for (const source of names) {
       tails.push(
         await startTail({
@@ -101,6 +125,7 @@ export async function startApp(config: Config, options: { heartbeatMs?: number; 
     });
     state = aggregate(input);
     ready = true;
+    scheduleHistory();
     heartbeat = setInterval(() => {
       for (const client of clients) {
         try {
@@ -168,7 +193,7 @@ export async function startApp(config: Config, options: { heartbeatMs?: number; 
         } catch {
           return new Response("Bad request", { status: 400, headers });
         }
-        const root = resolve(options.staticDir ?? "dist");
+        const root = resolve(options.staticDir ?? resolve(import.meta.dir, "../../dist"));
         const file = resolve(root, `.${pathname === "/" ? "/index.html" : pathname}`);
         if (!file.startsWith(root + sep)) return new Response("Forbidden", { status: 403, headers });
         let actualRoot: string;
@@ -198,6 +223,8 @@ export async function startApp(config: Config, options: { heartbeatMs?: number; 
       stop() {
         return (stopping ??= (async () => {
           ready = false;
+          stopped = true;
+          if (historyTimer) clearTimeout(historyTimer);
           if (timer) clearTimeout(timer);
           clearInterval(heartbeat);
           for (const client of clients) {
@@ -207,15 +234,25 @@ export async function startApp(config: Config, options: { heartbeatMs?: number; 
           }
           clients.clear();
           server.stop(true);
-          await Promise.all([...tails.map((tail) => tail.stop()), stats!.stop()]);
+          await Promise.all([
+            ...tails.map((tail) => tail.stop()),
+            stats!.stop(),
+            ...(historyLoading ? [historyLoading] : []),
+          ]);
         })());
       },
     };
   } catch (error) {
     ready = false;
+    stopped = true;
+    if (historyTimer) clearTimeout(historyTimer);
     if (timer) clearTimeout(timer);
     if (heartbeat) clearInterval(heartbeat);
-    await Promise.all([...tails.map((tail) => tail.stop()), ...(stats ? [stats.stop()] : [])]);
+    await Promise.all([
+      ...tails.map((tail) => tail.stop()),
+      ...(stats ? [stats.stop()] : []),
+      ...(historyLoading ? [historyLoading] : []),
+    ]);
     throw error;
   }
 }

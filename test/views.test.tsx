@@ -167,12 +167,109 @@ test("ErrorsView has designed empty states", () => {
 
 // ---- History ----
 
-test("HistoryView is honest when no snapshots exist", async () => {
+type HistoryStatus = {
+  status: "ok" | "missing" | "error";
+  path: string;
+  malformed: number;
+  omitted: number;
+  detail?: string;
+};
+// historyStatus is added to DashboardState by the snapshot lane; tests pass it explicitly.
+const withHistoryStatus = (state: DashboardState, historyStatus: HistoryStatus | null) =>
+  ({ ...state, historyStatus }) as DashboardState;
+
+test("HistoryView empty state points at the snapshot command and the weekly timer, not at a future milestone", async () => {
   const html = markup(<HistoryView state={await fixtureState()} />);
   expect(html).toContain("no snapshots");
   expect(html).toContain("YYYY-MM-DD.json");
-  expect(html).toContain("M5");
+  expect(html).toContain("bun run snapshot");
+  expect(html).toContain("weekly timer");
+  expect(html).not.toContain("M5");
+  expect(html).not.toContain("arrive");
+  // The server did not report a directory, so none is invented.
+  expect(html).toContain("snapshot directory not reported");
   expect(html).not.toContain("data-multiple");
+});
+
+test("HistoryView names the configured snapshot directory when it is empty", async () => {
+  const state = withHistoryStatus(await fixtureState(), {
+    status: "ok",
+    path: "/data/ord/snapshots",
+    malformed: 0,
+    omitted: 0,
+  });
+  const html = markup(<HistoryView state={state} />);
+  expect(html).toContain("no snapshots in");
+  expect(html).toContain("/data/ord/snapshots");
+  expect(html).toContain("bun run snapshot");
+  expect(html).not.toContain("not reported");
+});
+
+test("HistoryView says when the snapshot directory is missing or unreadable", async () => {
+  const base = await fixtureState();
+  const missing = markup(
+    <HistoryView
+      state={withHistoryStatus(base, { status: "missing", path: "/nope/snapshots", malformed: 0, omitted: 0 })}
+    />,
+  );
+  expect(missing).toContain("snapshot directory missing");
+  expect(missing).toContain("/nope/snapshots");
+  expect(missing).toContain("bun run snapshot");
+  const broken = markup(
+    <HistoryView
+      state={withHistoryStatus(base, {
+        status: "error",
+        path: "/locked/snapshots",
+        malformed: 0,
+        omitted: 0,
+        detail: "EACCES",
+      })}
+    />,
+  );
+  expect(broken).toContain("snapshot directory unreadable");
+  expect(broken).toContain("/locked/snapshots");
+  expect(broken).toContain("EACCES");
+  expect(broken).toMatch(/class="[^"]*err[^"]*"/);
+});
+
+test("HistoryView reports malformed and omitted snapshot counts honestly, even with nothing to draw", async () => {
+  const base = await fixtureState();
+  const html = markup(
+    <HistoryView state={withHistoryStatus(base, { status: "ok", path: "/s", malformed: 2, omitted: 7 })} />,
+  );
+  expect(html).toContain("2 snapshot files could not be parsed and were skipped");
+  expect(html).toContain("7 older snapshots omitted from the payload");
+  const one = markup(
+    <HistoryView state={withHistoryStatus(base, { status: "ok", path: "/s", malformed: 1, omitted: 1 })} />,
+  );
+  expect(one).toContain("1 snapshot file could not be parsed and was skipped");
+  expect(one).toContain("1 older snapshot omitted from the payload");
+});
+
+test("HistoryView shows the directory and counts above populated snapshots, and invents no deltas", async () => {
+  const state = await fixtureState();
+  const base = state.stats!;
+  const history = [
+    { date: "2026-10-19", stats: { ...base, steps: 1000 } },
+    { date: "2026-10-26", stats: { ...base, steps: 2000 } },
+  ];
+  const html = markup(
+    <HistoryView
+      state={withHistoryStatus(
+        { ...state, history },
+        { status: "ok", path: "/data/ord/snapshots", malformed: 1, omitted: 3 },
+      )}
+    />,
+  );
+  expect(html).toContain("/data/ord/snapshots");
+  expect(html).toContain("2 snapshots");
+  expect(html).toContain("1 snapshot file could not be parsed and was skipped");
+  expect(html).toContain("3 older snapshots omitted from the payload");
+  expect(html).toContain("no week-over-week deltas");
+  expect(html).not.toContain("Δ");
+  expect(html).not.toMatch(/[+-]\d+(\.\d+)?%/);
+  expect(html).not.toContain("no snapshots");
+  expect(html).not.toContain("NaN");
 });
 
 test("HistoryView draws small multiples per metric from demo snapshots, oldest first", async () => {

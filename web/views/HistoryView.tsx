@@ -4,6 +4,49 @@ import { fmtInt, fmtRange } from "./format";
 
 type Snapshot = DashboardState["history"][number];
 
+type HistoryStatus = NonNullable<DashboardState["historyStatus"]>;
+
+const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
+
+/** Source health for the snapshot directory: where it is, what failed, and what was left out. Never guesses. */
+function SnapshotSource({ status }: { status: HistoryStatus | null }) {
+  if (!status) return <div className="dim">snapshot directory not reported by the server</div>;
+  return (
+    <>
+      {status.status === "missing" ? (
+        <div className="warn">
+          <span className="glyph" aria-hidden="true">
+            ○
+          </span>
+          snapshot directory missing: <span className="path">{status.path}</span>
+        </div>
+      ) : status.status === "error" ? (
+        <div className="err">
+          <span className="glyph" aria-hidden="true">
+            ▲
+          </span>
+          snapshot directory unreadable: <span className="path">{status.path}</span>
+          {status.detail ? ` · ${status.detail}` : ""}
+        </div>
+      ) : (
+        <div className="dim">
+          snapshot directory: <span className="path">{status.path}</span>
+        </div>
+      )}
+      {status.malformed > 0 ? (
+        <div className="warn">
+          {`${status.malformed} ${plural(status.malformed, "snapshot file could not be parsed and was skipped", "snapshot files could not be parsed and were skipped")}`}
+        </div>
+      ) : null}
+      {status.omitted > 0 ? (
+        <div className="warn">
+          {`${status.omitted} older ${plural(status.omitted, "snapshot", "snapshots")} omitted from the payload`}
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 const tokenTotal = (s: StatsRecord) =>
   s.tokens.input + s.tokens.output + s.tokens.reasoning + s.tokens.cache.read + s.tokens.cache.write;
 
@@ -57,15 +100,19 @@ function Multiple({ metric, snaps }: { metric: (typeof METRICS)[number]; snaps: 
 
 export function HistoryView({ state }: { state: DashboardState }) {
   const snaps = [...state.history].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  const status = state.historyStatus ?? null;
   if (snaps.length === 0) {
     return (
       <div className="view history">
         <div className="empty" role="status">
-          <div>no snapshots</div>
+          <div>{status?.status === "ok" ? "no snapshots in the snapshot directory" : "no snapshots"}</div>
           <div className="dim">
-            weekly snapshots of opencode stats --json are stored as YYYY-MM-DD.json. None are recorded yet.
+            weekly snapshots of opencode stats --json are stored as YYYY-MM-DD.json, one file per week.
           </div>
-          <div className="dim">snapshot recording and loading arrive in M5.</div>
+          <div className="dim">
+            write one now with <code>bun run snapshot</code>, or enable the weekly timer to record them automatically.
+          </div>
+          <SnapshotSource status={status} />
         </div>
       </div>
     );
@@ -76,8 +123,11 @@ export function HistoryView({ state }: { state: DashboardState }) {
     <div className="view history">
       <p className="lede">
         <b>{`${snaps.length} ${snaps.length === 1 ? "snapshot" : "snapshots"}`}</b>
-        {` · ${first.date}${snaps.length > 1 ? ` → ${last.date}` : ""} · each snapshot covers its own stats range; values are not normalized`}
+        {` · ${first.date}${snaps.length > 1 ? ` → ${last.date}` : ""} · each snapshot covers its own stats range; values are not normalized and ranges may differ or overlap; no week-over-week deltas are inferred.`}
       </p>
+      <div className="source-note">
+        <SnapshotSource status={status} />
+      </div>
       <div className="multiples">
         {METRICS.map((m) => (
           <Multiple key={m.key} metric={m} snaps={snaps} />

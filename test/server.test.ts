@@ -4,6 +4,29 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "../src/config";
 import { startApp } from "../src/server";
+import { writeWeeklySnapshot } from "../src/sources/snapshots";
+
+test("history is loaded at startup and refreshed until stop", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "ord-history-"));
+  const config = loadConfig({ ORD_STATE_DIR: dir, ORD_PORT: "0", ORD_STATS_ENABLED: "false" }, []);
+  const stats = await Bun.file("fixtures/stats.json").json();
+  await writeWeeklySnapshot(config.snapshotDir, stats, new Date(2026, 0, 5));
+  const app = await startApp(config, { historyRefreshMs: 20 });
+  try {
+    let state = await (await fetch(`${app.url}/api/state`)).json();
+    expect(state.history).toHaveLength(1);
+    expect(state.historyStatus.status).toBe("ok");
+    await writeWeeklySnapshot(config.snapshotDir, stats, new Date(2026, 0, 12));
+    for (let i = 0; i < 50 && state.history.length < 2; i++) {
+      await Bun.sleep(20);
+      state = await (await fetch(`${app.url}/api/state`)).json();
+    }
+    expect(state.history).toHaveLength(2);
+  } finally {
+    await app.stop();
+    await rm(dir, { recursive: true, force: true });
+  }
+});
 
 test("source retention reports evicted records explicitly", async () => {
   const dir = await mkdtemp(join(tmpdir(), "ord-window-"));

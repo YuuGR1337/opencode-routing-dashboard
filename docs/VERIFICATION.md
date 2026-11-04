@@ -81,3 +81,14 @@ These are child-process controls, not an OS network sandbox or control of unrela
 - Final focused green: `bun test test/views.test.tsx test/ui-shell.test.tsx test/filters.test.ts test/clock.test.ts` → exit 0, 41 tests. The pure clock excludes session-only route exceptions from prompt counts.
 - Final reconciled checks: `bun run typecheck` → exit 0; `bun run lint` → exit 0; `bun test` → exit 0, 84 tests across 12 files (11.87 s); `bun run build` → exit 0.
 - All sixteen M4 screenshots were recaptured with the source-backed final readout, `last 60 s`. The 90-check interaction script passed again. Lower-bound readout markup is unit-tested, not separately screenshotted.
+
+### M5 — snapshots and operations
+
+- Snapshot red: `bun test test/snapshots.test.ts` → exit 1 against stub. Green: `bun test test/snapshots.test.ts test/server.test.ts` → exit 0, 13 tests.
+- CLI red: `bun test test/cli.test.ts` → exit 1, 3 expected behavior failures before command implementation; green → exit 0, 4 tests.
+- History-status boundary regression: `bun test test/client.test.ts -t 'malformed nested'` → exit 1 before validation, then `bun test test/client.test.ts` → exit 0, 5 tests.
+- `bun run typecheck` → exit 0; `bun run lint` → exit 0; `bun test` → exit 0, 98 tests across 14 files (12.02 s); `bun run build` → exit 0.
+- `bun pm pack --destination /tmp/opencode --quiet` → exit 0. Reviewed archive inventory and executable permissions: runtime source, built assets, fonts/licenses and systemd examples included; fixtures/tests/node_modules/secrets excluded. Version stays 0.1.0; no registry publish, service install or release occurred.
+- History is loaded from actual temporary snapshot files. The current-week file was produced by `bun run snapshot -- --snapshot-dir /tmp/m5/snapshots --stats-file fixtures/stats.json` → exit 0. Older points are explicitly synthetic anonymized demo clones, not real history.
+- Screenshots `m5-history-{empty,populated}-{1440x900,1024x768}.png` were captured from a normal source-backed build with fixture replay and reviewed. No console/network/CSP errors. Source path, snapshot counts, individual ranges and absence of inferred weekly deltas are visible; a later copy-only clarification says ranges *may* differ or overlap.
+- Roundtrip, concurrent no-overwrite publication, schema/date/symlink validation, byte/count caps, missing directory, fixture snapshot command and live server history refresh are tested. Timer cleanup exists but has no dedicated M5 assertion; add to final hardening if materially changed.

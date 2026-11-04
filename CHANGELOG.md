@@ -11,6 +11,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 - M3: configurable loopback HTTP/SSE server, rotation-safe JSONL tailing, bounded stats polling, offline stats-file mode and source health states.
 - M4a: switchboard shell with local IBM Plex Mono/Instrument Sans fonts, ghost suggestion wires, context jacks, aggregate model rail, dense ticker, raw event drawer and fixture replay screenshots.
 - M4: Flow, Agreement, Usage, Errors and History drawers; pure event filters, search/keyboard navigation, session timeline and fixture-backed smoke tests for every view.
+- M5: atomic non-overwriting weekly snapshots, bounded live History loading, one-shot snapshot CLI, package-relative assets and optional systemd user service/timer examples.
 
 ### Clarified
 - Execution agent/model, fallback and per-message usage cannot be inferred from the supplied logs; agreement is explicitly context-only.
