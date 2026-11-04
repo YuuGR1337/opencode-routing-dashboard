@@ -1,0 +1,3 @@
+{"ts":"2026-11-03T02:35:18.725Z","session":"ses_A1","commands":["ls /tmp"],"scores":{"reversible":0.06,"routine":0.9},"verdict":"ask:low-score","latency_ms":1279}
+{"ts":"2026-11-03T02:35:20.335Z","session":"ses_A1","commands":["rm -r /tmp/x"],"verdict":"ask:gate","latency_ms":0}
+{"ts":"2026-11-03T02:35:20.335Z","session":"ses_B2","commands":["git push origin feat/x"],"verdict":"ask:risk-list","latency_ms":0}

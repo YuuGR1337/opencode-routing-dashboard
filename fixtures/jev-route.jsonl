@@ -1,0 +1,3 @@
+{"ts":"2026-11-04T02:12:37.276Z","session":"ses_A1","message":"msg_A1","agent":"orchestrator","dir":"/home/user/project","flag":"/home/user/project/.opencode/jev-route","prompt":"Fix the typo","role":"orchestrator","conf":0.96,"needs_oracle":0.06,"decision":"skipped","reason":"role_orchestrator","latency_ms":373}
+{"ts":"2026-11-04T02:13:06.829Z","session":"ses_B2","message":"msg_B2","agent":"orchestrator","dir":"/home/user/project","flag":"/home/user/project/.opencode/jev-route","prompt":"Fix the off-by-one bug","role":"fixer","conf":0.85,"needs_oracle":0.2,"decision":"injected","reason":null,"latency_ms":380}
+{"ts":"2026-11-04T02:12:16.989Z","session":"ses_D4","decision":"skipped","reason":"exception:boom"}

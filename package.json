@@ -1,0 +1,15 @@
+{
+  "name": "opencode-routing-dashboard",
+  "version": "0.0.0",
+  "description": "Real-time localhost dashboard for OpenCode routing",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "opencode-routing-dashboard": "src/cli.ts" },
+  "scripts": {
+    "start": "bun src/cli.ts",
+    "dev": "bun --watch src/cli.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": { "@types/bun": "latest", "typescript": "^5" }
+}
