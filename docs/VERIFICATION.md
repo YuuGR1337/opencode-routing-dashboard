@@ -54,3 +54,15 @@ The orchestrator owns milestone-wide typecheck, lint and tests after reconciling
 Source inspection of OpenCode's stats handler shows a local stats API call. Ensuring a standalone OpenCode server can otherwise initiate catalog downloads. The dashboard's child runs with `--standalone`, `OPENCODE_DISABLE_MODELS_FETCH=1`, `OPENCODE_DISABLE_AUTOUPDATE=1`, `OPENCODE_PURE=1`, `OPENCODE_DISABLE_LSP_DOWNLOAD=1`, and no `OTEL_EXPORTER_*` environment variables.
 
 These are child-process controls, not an OS network sandbox or control of unrelated OpenCode services. Installed plugins and upstream CLI behavior remain external trust boundaries; fixture/file mode never spawns the CLI. No stats were executed on real user data during verification.
+
+### M4a — switchboard shell
+
+- Shell red: `bun test test/ui-shell.test.tsx` → exit 1, 13 failures against throwing component and placeholder CSS. Green: same command → exit 0, 13 tests.
+- Client red/green: `bun test test/client.test.ts` → exit 1 before decode/reconnect behavior; final focused run exit 0, 5 tests. A reconnect snapshot resets the sequence baseline and a late HTTP response cannot overwrite SSE.
+- `bun run typecheck` → exit 0.
+- `bun run lint` → exit 0, including scripts after expanding Biome's include scope.
+- `bun test` → exit 0, 56 tests across 9 files (11.81 s).
+- `bun run build` → exit 0.
+- Clean build screenshots: `m4a-{empty,live,detail}-{1440x900,1024x768}.png` and `m4a-arrival-motion-1440x900.png`. Fixture files were replayed live into a temporary directory with `ORD_DEMO=true` and `ORD_STATS_FILE=fixtures/stats.json`.
+- Opened/reviewed live screenshots at both sizes after the final clean build; empty/detail/arrival layouts were also reviewed, with no rendering changes in the recapture. Approved deviations are listed in DESIGN.md.
+- Browser evidence: used IBM Plex Mono and Instrument Sans weights load locally, no CSP errors, failed requests, page errors or favicon 404s in captures. Arrival evidence is a mid-motion screenshot and observed motion-element counts 0 → 3 → 0, not a frame-rate benchmark.

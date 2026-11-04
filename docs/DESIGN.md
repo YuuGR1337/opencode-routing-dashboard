@@ -61,3 +61,17 @@ SPEC's documented evidence limits take precedence over the conceptual execution 
 - Detail lists show `newest k of n retained` and omitted/evicted counts when bounded. Aggregate readouts describe the retained window, not just visible or transmitted rows. Malformed counters are labeled process-lifetime; stats tool failures display their own stats range.
 
 These are semantic corrections, not permission to relax the palette, typography, density, motion or anti-slop rules.
+
+## M4a review
+
+Reviewed live, empty, event-detail and arrival captures under `docs/screenshots/m4a-*`.
+The following layout choices are accepted: an optional call-in-focus readout above
+1280 px; drawer navigation in the source-health row; lowercase ticker labels;
+orthogonal suggestion wires with a 500 ms arrival token on their final segment;
+flat background without optional grain. The ticker renders at most the newest
+300 transmitted rows and states the limit. Full transmitted raw records remain
+available through event detail. These choices preserve the exchange-room
+palette, compact typography, 22 px rows and no-idle-animation constraint.
+
+M4a intentionally leaves view drawers and search/filter shortcuts for M4; they
+are disabled and labeled, not presented as working functionality.
