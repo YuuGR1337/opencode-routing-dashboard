@@ -49,3 +49,15 @@ Routing is shown as a live telephone-exchange / rail-yard switchboard.
 ## Verification
 Each UI milestone ends with screenshots (Playwright, 1440×900 and 1024×768, live with fixtures replayed) saved to
 `docs/screenshots/` and reviewed against this file; list every deviation.
+
+## Evidence-driven deviations (v1)
+
+SPEC's documented evidence limits take precedence over the conceptual execution wiring:
+- Draw dashed Jev suggestion wires only. A separate hollow `ctx` jack denotes the recorded context agent; matching jacks indicate **context agreement**, not proven delegation.
+- Do not draw solid per-call agent-to-model execution cables. The right rail is explicitly **aggregate stats, unlinked to calls**, sized by steps. No fallback spark is drawn without an observable fallback.
+- Fallback reads `not detectable`, with no invented percentage. Execution agent/model/provider/variant, per-message tokens and cost read `—`; classifier model remains a separately labeled field.
+- At narrower widths, lower-priority ticker fields may move into the event detail drawer rather than becoming unreadably compressed. Complete raw records remain inspectable there.
+- Fixture replay is explicitly labeled `DEMO`; live mode never fills missing sources with fixtures.
+- Detail lists show `newest k of n retained` and omitted/evicted counts when bounded. Aggregate readouts describe the retained window, not just visible or transmitted rows. Malformed counters are labeled process-lifetime; stats tool failures display their own stats range.
+
+These are semantic corrections, not permission to relax the palette, typography, density, motion or anti-slop rules.

@@ -1,5 +1,7 @@
 import type { ObserveRecord, PermissionRecord, RouteRecord, StatsRecord } from "./schema";
 
+export const MAX_PAYLOAD_BYTES = 16 * 1024 * 1024;
+
 export type Source = "observe" | "route" | "permissions";
 export type DashboardInput = {
   observe: ObserveRecord[];
@@ -7,6 +9,7 @@ export type DashboardInput = {
   permissions: PermissionRecord[];
   stats: StatsRecord | null;
   malformed: Record<Source, number>;
+  evicted?: Record<Source, number>;
   sources?: Record<Source, { status: "ok" | "missing" | "error"; path: string; detail?: string }>;
   statsStatus?: { status: "ok" | "unavailable" | "error" | "disabled"; detail?: string; fetchedAt?: string };
   history?: { date: string; stats: StatsRecord }[];
@@ -47,6 +50,12 @@ export type FlowEvent = {
 export type DashboardState = {
   events: FlowEvent[];
   permissions: PermissionRecord[];
+  window: {
+    events: { retained: number; sent: number; omitted: number };
+    permissions: { retained: number; sent: number; omitted: number };
+    evicted: Record<Source, number>;
+    maxBytes: number;
+  };
   agreement: {
     compared: number;
     agreed: number;
@@ -100,7 +109,11 @@ function addUsage(to: Usage, from: Usage) {
 const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 const key = (session: string, message: string) => JSON.stringify([session, message]);
 
-export function aggregate(input: DashboardInput, now: number = Date.now()): DashboardState {
+export function aggregate(
+  input: DashboardInput,
+  now: number = Date.now(),
+  options?: { maxBytes?: number },
+): DashboardState {
   // Process by timestamp, independent of source arrival order. A stack gives the nearest unpaired prior observation.
   const records = [
     ...input.observe.map((record) => ({ kind: "observe" as const, record, tie: JSON.stringify(record) })),
@@ -131,7 +144,13 @@ export function aggregate(input: DashboardInput, now: number = Date.now()): Dash
       if (o?.error != null) errors.push(o.error);
       if (r?.reason?.startsWith("exception:") || r?.reason?.startsWith("jev_error:")) errors.push(r.reason);
       return {
-        id: JSON.stringify([o, r]),
+        id: JSON.stringify([
+          o?.ts ?? null,
+          r?.ts ?? null,
+          o?.session ?? r!.session,
+          o?.message ?? r?.message ?? null,
+          o && r ? "both" : o ? "observe" : "route",
+        ]),
         ts: o?.ts ?? r!.ts,
         session: o?.session ?? r!.session,
         message: o?.message ?? r?.message ?? null,
@@ -159,13 +178,18 @@ export function aggregate(input: DashboardInput, now: number = Date.now()): Dash
         route: r,
       };
     })
-    .sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts) || cmp(a.id, b.id));
+    .sort(
+      (a, b) =>
+        Date.parse(a.ts) - Date.parse(b.ts) ||
+        cmp(a.id, b.id) ||
+        cmp(JSON.stringify([a.observe, a.route]), JSON.stringify([b.observe, b.route])),
+    );
   // Identical records are still separate rows with stable distinct ids.
   const ids = new Map<string, number>();
   for (const event of events) {
     const n = ids.get(event.id) ?? 0;
     ids.set(event.id, n + 1);
-    event.id = JSON.stringify([event.id, n]);
+    event.id = `${event.id.slice(0, -1)},${n}]`;
   }
   let compared = 0,
     agreed = 0;
@@ -204,8 +228,7 @@ export function aggregate(input: DashboardInput, now: number = Date.now()): Dash
   const permissionCounts: Record<string, number> = Object.create(null);
   for (const p of input.permissions) permissionCounts[p.verdict] = (permissionCounts[p.verdict] ?? 0) + 1;
   const toolFailures = input.stats?.tools.totals.failed ?? null;
-  const total =
-    observeErrors + routeErrors + Object.values(input.malformed).reduce((a, b) => a + b, 0) + (toolFailures ?? 0);
+  const total = observeErrors + routeErrors + Object.values(input.malformed).reduce((a, b) => a + b, 0);
   const latencies = events.flatMap((e) => (e.latency === null ? [] : [e.latency])).sort((a, b) => a - b);
   const mid = Math.floor(latencies.length / 2);
   const p50Latency = latencies.length
@@ -224,9 +247,19 @@ export function aggregate(input: DashboardInput, now: number = Date.now()): Dash
         stats.tokens.cache.read +
         stats.tokens.cache.write
       : null;
-  return {
-    events,
-    permissions: [...input.permissions],
+  const permissions = [...input.permissions].sort(
+    (a, b) => Date.parse(a.ts) - Date.parse(b.ts) || cmp(JSON.stringify(a), JSON.stringify(b)),
+  );
+  const maxBytes = options?.maxBytes ?? MAX_PAYLOAD_BYTES - 4096;
+  const state: DashboardState = {
+    events: [],
+    permissions: [],
+    window: {
+      events: { retained: events.length, sent: 0, omitted: events.length },
+      permissions: { retained: permissions.length, sent: 0, omitted: permissions.length },
+      evicted: { observe: 0, route: 0, permissions: 0, ...input.evicted },
+      maxBytes,
+    },
     agreement: { compared, agreed, percent, matrix, histogram },
     usage: {
       models: [...models.values()],
@@ -260,4 +293,38 @@ export function aggregate(input: DashboardInput, now: number = Date.now()): Dash
     statsStatus: input.statsStatus ?? null,
     fallback: "not detectable",
   };
+  const encoder = new TextEncoder();
+  const size = (value: unknown) => encoder.encode(JSON.stringify(value)).length;
+  // Allow for count digit growth and envelope punctuation; the default also reserves 4096 bytes for SSE metadata.
+  const budget = Math.max(0, maxBytes - size(state) - 128);
+  let eventStart = events.length;
+  let permissionStart = permissions.length;
+  let usedEvents = 0;
+  let usedPermissions = 0;
+  const eventBudget = Math.floor(budget * 0.75);
+  while (eventStart > 0) {
+    const bytes = size(events[eventStart - 1]) + 1;
+    if (usedEvents + bytes > eventBudget) break;
+    usedEvents += bytes;
+    eventStart--;
+  }
+  while (permissionStart > 0) {
+    const bytes = size(permissions[permissionStart - 1]) + 1;
+    if (usedPermissions + bytes > budget - usedEvents) break;
+    usedPermissions += bytes;
+    permissionStart--;
+  }
+  while (eventStart > 0) {
+    const bytes = size(events[eventStart - 1]) + 1;
+    if (usedEvents + usedPermissions + bytes > budget) break;
+    usedEvents += bytes;
+    eventStart--;
+  }
+  state.events = events.slice(eventStart);
+  state.permissions = permissions.slice(permissionStart);
+  state.window.events.sent = state.events.length;
+  state.window.events.omitted = eventStart;
+  state.window.permissions.sent = state.permissions.length;
+  state.window.permissions.omitted = permissionStart;
+  return state;
 }

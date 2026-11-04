@@ -25,3 +25,16 @@ unpaired prior observation when keys repeat. Source arrival order does not chang
 the result. Permission records are retained separately. Raw records survive for
 inspection; classifier identity and context agent are never relabeled as execution.
 Usage totals come from stats, not guessed allocations across messages.
+
+## Live server
+
+The tailer serializes reads and coalesces wakes into one active and one pending
+drain. It decodes only complete newline-delimited byte sequences and bounds a
+single record to 1 MiB. Polling recovers when directory watching is unavailable.
+The server batches changes over 50 ms, retains configurable source windows and
+publishes self-contained state replacements over SSE. Slow readers disconnect;
+reconnection gets a fresh snapshot. Stats polling starts without delaying the
+listener and aborts/reaps its child on timeout or shutdown. The HTTP listener is
+explicitly loopback-only, checks Host, blocks static symlink escape, sends no
+CORS headers and uses a self-only CSP. See VERIFICATION.md for the subprocess
+network boundary and executable fixture tests.
