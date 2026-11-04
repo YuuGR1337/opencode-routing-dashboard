@@ -1,5 +1,16 @@
 # AGENTS.md
 
+Rules for every coding agent (OpenCode, Codex, Claude Code, Cursor). If a task conflicts with this file, this file wins; ask in the PR.
+
+## Skills
+Process lives in `.agents/skills/<name>/SKILL.md`: `branch-and-pr`, `tests-first`, `release`.
+If your agent does not auto-load `.agents/skills` (Claude Code does not), read the matching SKILL.md before starting.
+
+## Git workflow
+- Default/integration branch: `develop`. All PRs target `develop` (squash-merge). `main` = releases only (develop → main PR + `vX.Y.Z` tag, maintainer only).
+- Branches `<type>/<issue>-<slug>` (`feat|fix|chore|test|docs|refactor`). Never push to `develop`/`main`, never force-push shared branches, never delete branches or push tags unless told.
+- Conventional commits; SemVer; update `CHANGELOG.md` `[Unreleased]`. Details: CONTRIBUTING.md.
+
 ## Stack
 Bun (>=1.2) + TypeScript (strict) + React. Server: `Bun.serve` with SSE. No database; state is derived from files.
 
@@ -9,6 +20,7 @@ Bun (>=1.2) + TypeScript (strict) + React. Server: `Bun.serve` with SSE. No data
 - `bun run start` – production server on 127.0.0.1
 - `bun test` – unit + integration tests (fixtures in `fixtures/`)
 - `bun run typecheck` – `tsc --noEmit`
+- `bun run lint` – Biome
 - `bun run build` – bundle client
 
 ## Conventions
@@ -28,4 +40,4 @@ UI work follows docs/DESIGN.md strictly. UI milestones require Playwright screen
 - UI: at least smoke render tests for each view.
 
 ## Done criteria (per milestone)
-`bun run typecheck` and `bun test` pass, CI green, README/SPEC updated, PLAN.md box checked.
+`bun run typecheck`, `bun run lint` and `bun test` pass, CI green, docs + CHANGELOG updated, PLAN.md box checked. Bug fix = failing test first; never weaken/skip/delete a test to go green (see `tests-first`).

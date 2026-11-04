@@ -3,7 +3,7 @@
 ```
 /deepwork Build opencode-routing-dashboard end to end in this repository.
 
-Read first, in order: AGENTS.md, docs/SPEC.md, docs/DESIGN.md, docs/ARCHITECTURE.md, docs/PLAN.md, fixtures/.
+Read first, in order: AGENTS.md, CONTRIBUTING.md, .agents/skills/*/SKILL.md (branch-and-pr, tests-first, release), docs/SPEC.md, docs/DESIGN.md, docs/ARCHITECTURE.md, docs/PLAN.md, fixtures/.
 They are the source of truth. If they conflict, SPEC.md wins; record the decision in docs/SPEC.md.
 
 Goal: a localhost-only (127.0.0.1) real-time dashboard, Bun + TypeScript (strict) + React, that tails
@@ -12,11 +12,14 @@ views Flow, Agreement, Usage, Errors, History over SSE. Generic for any OpenCode
 and port configurable, no hardcoded usernames.
 
 Working rules:
-- Start with `git switch -c feat/dashboard-v1`. Never commit to or push main.
+- Branch model: `develop` is the integration/default branch, `main` is releases only. Start with
+  `git switch develop && git pull --ff-only && git switch -c feat/dashboard-v1`. Never commit to or push
+  `develop` or `main`, never force-push, never delete branches, never push tags. Follow the
+  branch-and-pr and tests-first skills (TDD: failing test first for every parser/aggregator/endpoint/view).
 - Work milestone by milestone following docs/PLAN.md (M1..M6). One or more commits per milestone,
   conventional messages. Tick each PLAN.md box only when its done criteria hold.
-- Done criteria per milestone: `bun run typecheck` exits 0, `bun test` exits 0, new behavior has tests
-  against fixtures/, docs updated. Paste the exact commands and exit codes in your milestone report.
+- Done criteria per milestone: `bun run typecheck`, `bun run lint` and `bun test` exit 0, new behavior has tests
+  against fixtures/, docs and CHANGELOG.md [Unreleased] updated. Paste the exact commands and exit codes in your milestone report.
 - Parse inputs at the boundary; malformed lines are counted and skipped, never crash. Missing files are
   a normal empty state.
 - Integration test required: start the server on a random port, append a line to a temp JSONL, assert it
@@ -37,7 +40,7 @@ Working rules:
 - Ask me only if truly blocked (credentials, paid services, irreversible/public actions).
 
 Stop when: all PLAN.md boxes (M1–M6 incl. M4a)  are checked, typecheck and tests pass locally, CI passes on the
-branch, and you have opened a pull request with `gh pr create --base main --head feat/dashboard-v1`
-whose body lists: what was built, how to run it, verification evidence (commands + exit codes,
-curl output excerpts), and a ranked known-issues list. Do not merge the PR. Then stop and report the PR URL.
+branch, and you have opened a pull request with `gh pr create --base develop --head feat/dashboard-v1`
+using .github/pull_request_template.md, whose body lists: what was built, how to run it, verification evidence (commands + exit codes,
+curl output excerpts), and a ranked known-issues list. Do not merge the PR, do not bump the version or tag a release (release skill is maintainer-only). Then stop and report the PR URL.
 ```
