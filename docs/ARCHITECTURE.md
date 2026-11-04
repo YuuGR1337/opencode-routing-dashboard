@@ -16,3 +16,52 @@ snapshots/*.json ──load──┘                                            
 - `web/` – React client bundled by `bun build`.
 - `src/config.ts` – env/flags, defaults, path expansion.
 - `contrib/` – systemd user unit.
+
+## Core evidence model
+
+`aggregate(DashboardInput, now)` is pure and returns JSON-serializable `DashboardState`.
+Observe/route records pair by exact session and non-null message, taking the nearest
+unpaired prior observation when keys repeat. Source arrival order does not change
+the result. Permission records are retained separately. Raw records survive for
+inspection; classifier identity and context agent are never relabeled as execution.
+Usage totals come from stats, not guessed allocations across messages.
+
+## Live server
+
+The tailer serializes reads and coalesces wakes into one active and one pending
+drain. It decodes only complete newline-delimited byte sequences and bounds a
+single record to 1 MiB. Polling recovers when directory watching is unavailable.
+The server batches changes over 50 ms, retains configurable source windows and
+publishes self-contained state replacements over SSE. Slow readers disconnect;
+reconnection gets a fresh snapshot. Stats polling starts without delaying the
+listener and aborts/reaps its child on timeout or shutdown. The HTTP listener is
+explicitly loopback-only, checks Host, blocks static symlink escape, sends no
+CORS headers and uses a self-only CSP. See VERIFICATION.md for the subprocess
+network boundary and executable fixture tests.
+
+## Snapshot ownership and packaging
+
+`snapshot` is the only application writer. It captures validated stats, writes a
+private temporary file, syncs it and publishes it with an atomic non-replacing
+hard link. Concurrent captures keep the first complete snapshot for that local
+Monday; temporary files are cleaned up. The optional weekly user timer invokes
+this command independently of the HTTP service.
+
+`loadSnapshots` accepts only date-named regular files opened without following
+symlinks. History is bounded to 52 snapshots, 1 MiB per file and 2 MiB total.
+The server refreshes it every five seconds and exposes `historyStatus` with
+malformed/omitted counts. The server never writes snapshots. Static assets are
+resolved relative to the package, so the executable works from another working
+directory. `prepack` builds the local frontend; the package allowlist includes
+only runtime source/assets, licenses, README and optional service examples.
+
+## Final validation boundaries
+
+Each input log path can override the state-directory default independently.
+The 10k-line startup test covers a real loopback server and SSE append; an
+independent cold process check includes the production command's client build.
+The optional portable browser verifier only permits append tests against DEMO
+sources in a matching temporary directory, blocks cross-origin requests and
+emits machine-readable results. It requires an existing external Playwright
+installation rather than adding a project dependency. See KNOWN_ISSUES.md for
+unverified deployment/platform boundaries and extreme-volume limitations.

@@ -1,0 +1,10 @@
+[Unit]
+Description=Capture OpenCode routing dashboard weekly snapshot
+
+[Service]
+Type=oneshot
+# Set PATH to include bun and the installed dashboard executable if needed.
+# Environment=PATH=%h/.bun/bin:/usr/local/bin:/usr/bin
+# Environment=ORD_STATE_DIR=%h/.local/state/opencode
+# Environment=ORD_SNAPSHOT_DIR=%h/.local/state/opencode/snapshots
+ExecStart=/usr/bin/env opencode-routing-dashboard snapshot

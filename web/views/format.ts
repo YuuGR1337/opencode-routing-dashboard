@@ -1,0 +1,39 @@
+import type { Source } from "../../src/core/aggregate";
+
+export const ROLES = ["orchestrator", "oracle", "fixer", "explorer", "designer"] as const;
+export type Role = (typeof ROLES)[number];
+export const isRole = (value: string | null): value is Role =>
+  value !== null && (ROLES as readonly string[]).includes(value);
+export const SOURCES: Source[] = ["observe", "route", "permissions"];
+
+export const RAIL_CALLS = 10;
+export const RENDER_LIMIT = 300;
+
+export const STATUS_GLYPH = { ok: "●", missing: "○", error: "▲", unavailable: "○", disabled: "○" } as const;
+export const STATUS_CLASS = { ok: "ok", missing: "warn", error: "err", unavailable: "warn", disabled: "dim" } as const;
+
+const pad = (n: number, w = 2) => String(n).padStart(w, "0");
+export function fmtTs(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(), 3)}`;
+}
+export function fmtDay(ms: number) {
+  const d = new Date(ms);
+  return Number.isNaN(d.getTime()) ? "—" : `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+export const fmtRange = (range: { from: number; to: number }) => `${fmtDay(range.from)} → ${fmtDay(range.to)}`;
+/** Compact count for tight places (rails, readouts). */
+export function fmtNum(n: number) {
+  if (n >= 1e9) return `${(n / 1e9).toFixed(1)}B`;
+  if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
+  if (n >= 1e4) return `${(n / 1e3).toFixed(1)}k`;
+  return String(n);
+}
+/** Exact count with thousands separators (tables). Locale independent. */
+export const fmtInt = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+export const fmt2 = (n: number | null) => (n === null ? "—" : n.toFixed(2));
+export const trunc = (s: string | null, n: number) => (s === null ? "—" : s.length > n ? `${s.slice(0, n - 1)}…` : s);
+export const pct = (v: number | null) => (v === null ? "—" : `${Math.round(v)}%`);
+/** Cost as reported by opencode. 0 is shown as reported, never replaced by an estimate. */
+export const fmtCost = (cost: number) => (cost === 0 ? "0 reported" : `$${cost.toFixed(2)}`);
