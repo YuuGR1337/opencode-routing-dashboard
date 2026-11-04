@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 ## [Unreleased]
 
 ### Added in 0.2.0
+- M8: evidence-aware quota/preset analytics with explicit source coverage, sampled config timelines, cached retained-state reducers and debounced classifier/provider alerts with opt-in desktop delivery.
 - M7: read-only HTTP/SSE agents, explicit remote source configuration, SSH-first authenticated transport, per-source health/retry and configured Orca directory provenance.
 
 ### Fixed in 0.2.0

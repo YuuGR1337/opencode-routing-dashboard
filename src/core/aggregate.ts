@@ -3,7 +3,16 @@ import type { ObserveRecord, PermissionRecord, RouteRecord, StatsRecord } from "
 export const MAX_PAYLOAD_BYTES = 16 * 1024 * 1024;
 
 export type Source = "observe" | "route" | "permissions";
+export type PresetStatus = {
+  status: "ok" | "missing" | "error" | "unconfigured";
+  detail?: string;
+  observedFrom?: number;
+  observedTo?: number;
+};
+export type PresetChange = { preset: string; at: number };
 export type DashboardInput = {
+  presetChanges?: PresetChange[];
+  presetStatus?: PresetStatus;
   observe: ObserveRecord[];
   route: RouteRecord[];
   permissions: PermissionRecord[];
@@ -55,6 +64,8 @@ export type FlowEvent = {
   route: RouteRecord | null;
 };
 export type DashboardState = {
+  presetChanges?: PresetChange[];
+  presetStatus?: PresetStatus;
   events: FlowEvent[];
   permissions: PermissionRecord[];
   window: {
@@ -260,6 +271,8 @@ export function aggregate(
   );
   const maxBytes = options?.maxBytes ?? MAX_PAYLOAD_BYTES - 4096;
   const state: DashboardState = {
+    ...(input.presetChanges !== undefined ? { presetChanges: input.presetChanges } : {}),
+    ...(input.presetStatus !== undefined ? { presetStatus: input.presetStatus } : {}),
     events: [],
     permissions: [],
     window: {

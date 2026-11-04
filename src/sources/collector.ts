@@ -1,6 +1,8 @@
 import type { Config } from "../config";
 import type { DashboardInput, Source } from "../core/aggregate";
 import { parseLine } from "../core/schema";
+import { loadAnalyticsSettings } from "./analytics";
+import { startPresetMonitor } from "./presets";
 import { loadSnapshots } from "./snapshots";
 import { startStats } from "./stats";
 import { startTail } from "./tail";
@@ -31,6 +33,7 @@ export async function startCollector(
   let historyLoading: Promise<void> | undefined;
   const tails: Awaited<ReturnType<typeof startTail>>[] = [];
   let stats: Awaited<ReturnType<typeof startStats>> | undefined;
+  let presets: Awaited<ReturnType<typeof startPresetMonitor>> | undefined;
   const changed = () => {
     if (ready && !stopped) onChange(input);
   };
@@ -59,11 +62,22 @@ export async function startCollector(
       await Promise.all([
         ...tails.map((tail) => tail.stop()),
         ...(stats ? [stats.stop()] : []),
-
+        ...(presets ? [presets.stop()] : []),
         ...(historyLoading ? [historyLoading] : []),
       ]);
     })());
   try {
+    const presetPath = config.analyticsConfigFile
+      ? (await loadAnalyticsSettings(config.analyticsConfigFile)).presetPath
+      : undefined;
+    input.presetChanges = [];
+    input.presetStatus = { status: "unconfigured" };
+    if (presetPath)
+      presets = await startPresetMonitor(presetPath, ({ changes, status }) => {
+        input.presetChanges = changes;
+        input.presetStatus = status;
+        changed();
+      });
     await refresh();
     for (const source of names) {
       tails.push(

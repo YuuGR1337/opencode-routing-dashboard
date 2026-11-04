@@ -3,10 +3,13 @@ import { isIP } from "node:net";
 import { resolve, sep } from "node:path";
 import type { Config } from "../config";
 import { type DashboardInput, MAX_PAYLOAD_BYTES } from "../core/aggregate";
+import { createAnalyticsCache } from "../core/analytics-cache";
 import { type FederatedState, type FederationSource, federate } from "../core/federation";
+import { loadAnalyticsSettings } from "../sources/analytics";
 import { startCollector } from "../sources/collector";
 import { startRemote } from "../sources/remote";
 import { loadSourceConfig } from "../sources/source-config";
+import { startAnalyticsEngine } from "./analytics";
 
 export async function startApp(
   config: Config,
@@ -16,7 +19,9 @@ export async function startApp(
   if (!((isIP(bind) === 4 && bind.startsWith("127.")) || bind === "::1" || bind === "0:0:0:0:0:0:0:1"))
     throw new Error("Dashboard bind must be loopback");
   let input: DashboardInput;
-  let state: FederatedState;
+  let state: FederatedState & { analytics?: ReturnType<ReturnType<typeof startAnalyticsEngine>["snapshot"]> };
+  let analytics: ReturnType<typeof startAnalyticsEngine> | undefined;
+  const analyticsCache = createAnalyticsCache();
   const remoteSources: FederationSource[] = [];
   const remotes: ReturnType<typeof startRemote>[] = [];
   let seq = 0;
@@ -30,6 +35,7 @@ export async function startApp(
     timer = undefined;
     state = {
       ...federate([{ id: "local", label: "Local", status: "live", input }, ...remoteSources]),
+      ...(analytics ? { analytics: analytics.snapshot() } : {}),
     };
     seq++;
     const data = encoder.encode(`event: delta\ndata: ${JSON.stringify({ state, seq, demo: config.demo })}\n\n`);
@@ -50,6 +56,9 @@ export async function startApp(
   let collector: Awaited<ReturnType<typeof startCollector>> | undefined;
   let heartbeat: ReturnType<typeof setInterval> | undefined;
   try {
+    const analyticsSettings = config.analyticsConfigFile
+      ? await loadAnalyticsSettings(config.analyticsConfigFile)
+      : { quotas: [], alerts: { holdMs: 0, repeatMs: 60000, activeMs: 60000, desktop: false } };
     const configured = config.configFile ? await loadSourceConfig(config.configFile) : [];
     const tokens = configured.map((source) => {
       const token = source.tokenEnv ? process.env[source.tokenEnv] : undefined;
@@ -59,6 +68,7 @@ export async function startApp(
     collector = await startCollector(
       config,
       (next) => {
+        analyticsCache.invalidate(next);
         input = next;
         changed();
       },
@@ -75,6 +85,32 @@ export async function startApp(
         input: null,
       });
     state = federate([{ id: "local", label: "Local", status: "live", input }, ...remoteSources]);
+    analytics = startAnalyticsEngine(
+      analyticsSettings,
+      () => {
+        const epochs = new Set<string>();
+        return [{ id: "local", status: "live" as const, input }, ...remoteSources].map((source) => {
+          const epoch = "epoch" in source ? source.epoch : undefined;
+          const duplicate = !!epoch && epochs.has(epoch);
+          if (epoch && !duplicate) epochs.add(epoch);
+          const shown = state.exchange.sources.find((item) => item.id === source.id);
+          const reason = duplicate ? "duplicate source epoch" : !source.input ? "source unavailable" : undefined;
+          return {
+            id: source.id,
+            status: duplicate ? "error" : source.status,
+            included: !reason,
+            ...(reason ? { reason } : {}),
+            uiOmitted: shown?.state?.window.events.omitted ?? 0,
+            ...(shown?.detail === "Source exceeds payload budget"
+              ? { uiReason: "source exceeds UI payload budget" }
+              : {}),
+            state: source.input && !duplicate ? analyticsCache.get(source.input) : null,
+          };
+        });
+      },
+      changed,
+    );
+    state = { ...state, analytics: analytics.snapshot() };
     ready = true;
     configured.forEach((source, index) => {
       const entry = remoteSources[index]!;
@@ -82,6 +118,7 @@ export async function startApp(
         startRemote(source, {
           token: tokens[index],
           onUpdate(next, envelope) {
+            analyticsCache.invalidate(next);
             entry.input = next;
             entry.epoch = envelope.epoch;
             entry.lastSeenAt = new Date().toISOString();
@@ -206,7 +243,7 @@ export async function startApp(
           }
           clients.clear();
           server.stop(true);
-
+          await analytics?.stop();
           await Promise.all(remotes.map((remote) => remote.stop()));
           await collector!.stop();
         })());
@@ -216,7 +253,7 @@ export async function startApp(
     ready = false;
     if (timer) clearTimeout(timer);
     if (heartbeat) clearInterval(heartbeat);
-
+    await analytics?.stop();
     await Promise.all(remotes.map((remote) => remote.stop()));
     if (collector) await collector.stop();
     throw error;
