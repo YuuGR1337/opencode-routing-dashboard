@@ -29,10 +29,10 @@ linked to this repository. It tracks three independent fields:
 
 Issue labels classify work (`bug`, `task`, `enhancement`, `documentation`, etc.).
 Project fields do not replace the issue's goal, criteria, scope and dependencies.
-Until native auto-add is enabled and verified using the steps below, add new
-issues manually. `Decision` and `Work type` require manual triage; an empty
-Decision is not approval. Closing an issue is not a substitute for checking its
-acceptance evidence and project fields.
+Native auto-add is enabled for open issues from this repository, with new items
+entering `Todo`. `Decision` and `Work type` require manual triage; an empty Decision
+is not approval. Closing an issue is not a substitute for checking its acceptance
+evidence and project fields.
 
 Assign owners when work is claimed. Create version milestones only for approved
 release scope; proposals #4–#11 deliberately have no milestone or release date.
@@ -42,8 +42,10 @@ No release schedule is implied by adding an issue to the project.
 ### Native issue intake (maintainer setup)
 
 Auto-add activation is a GitHub web setting, not delivered by merging this file.
-No custom Action or new project credential is configured. Activation and live
-delivery still need maintainer confirmation.
+No custom Action or new project credential is configured. The maintainer confirmed
+activation on 2026-11-07. [Issue #18](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/18)
+then appeared as `Todo` without a manual item-add; its Decision and Work type were
+initially empty, confirming that approval/type still require triage.
 
 1. Open project #6, then the top-right **… → Workflows** menu.
 2. Select **Auto-add to project → Edit**.

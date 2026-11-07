@@ -14,7 +14,7 @@ recorded in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
 ## Dependency updates and project intake (#16)
 
-- [x] Configure weekly Bun/GitHub Actions update PRs to `develop` with no auto-merge, verify merged proposal/security files and private reporting, and document native project auto-add. YAML structure, typecheck, lint, 252 tests and build passed locally; final acceptance requires green PR CI. Live auto-add activation/delivery and the first hosted Dependabot run are separate pending verification steps, not implied by merging configuration.
+- [x] Configure weekly Bun/GitHub Actions update PRs to `develop` with no auto-merge, verify merged proposal/security files and private reporting, and document native project auto-add. YAML structure, typecheck, lint, 252 tests and build passed locally; final acceptance requires green PR CI. The maintainer enabled auto-add and issue #18 arrived automatically as Todo; approval/type remain manual. The first hosted Dependabot run is pending default-branch merge and tracked in #18, not implied by merging configuration.
 
 - [x] **M0 Scaffold** – repo, docs, CI (done in initial commit; validated with the complete branch).
 - [x] **M1 Parsers** – schemas for the 3 JSONL formats + stats JSON; tests on `fixtures/`; malformed-line counting.
