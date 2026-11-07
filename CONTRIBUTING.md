@@ -9,7 +9,9 @@
 - One issue = one branch = one PR. Keep PRs small (aim < 400 lines of non-test code).
 
 ## Issues and planning
-- Write issue titles and bodies in English. Use the bug or task form; include a goal, observable acceptance criteria, scope/exclusions and work type. Bugs also need reproduction steps, expected behavior and version.
+- Write issue titles and bodies in English. Use the bug form for defects, the task form for agreed work, and the proposal/research form for ideas still under evaluation. Include a goal, observable acceptance criteria, scope/exclusions and work type. Bugs also need reproduction steps, expected behavior and version.
+- Submitting a proposal does not approve implementation, authorize repository access or schedule a release. Use synthetic or anonymized evidence, never secrets, real prompts or real session IDs.
+- Report suspected vulnerabilities privately using [SECURITY.md](SECURITY.md), not public issues or PRs.
 - Add each issue to the [repository project](https://github.com/users/crisesarmiento/projects/6). Addition is manual, not automated.
 - Set `Status` (`Todo`, `In Progress`, `Done`), `Decision` (`Under evaluation`, `Approved`) and `Work type`. `Todo` is backlog, not approval to implement. Research is a separate work type, not an approved product feature.
 - Claim an issue before implementation and assign its owner. Move approved work to `In Progress`; mark `Done` only after acceptance and merge, or documented research closure.

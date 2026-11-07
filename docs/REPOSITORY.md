@@ -40,7 +40,7 @@ No release schedule is implied by adding an issue to the project.
 
 ## Templates, skills and checks
 
-- `.github/ISSUE_TEMPLATE/`: bug/task forms; blank issues disabled. The `task`
+- `.github/ISSUE_TEMPLATE/`: bug/task/proposal forms; blank issues disabled. The `task`
   label must exist for the task form's label assignment.
 - `.github/pull_request_template.md`: criteria/evidence, tests-first and completion checks.
 - `.agents/skills/`: `branch-and-pr`, `tests-first`, `release` are committed guidance,
@@ -49,6 +49,17 @@ No release schedule is implied by adding an issue to the project.
 - `.github/workflows/release.yml`: version tags trigger release verification and
   publication. A tag's commit must be an ancestor of `origin/main`, not necessarily
   its current tip. The workflow also checks the package version and reruns checks.
+
+## Private vulnerability reporting
+
+GitHub private vulnerability reporting is enabled. [SECURITY.md](../SECURITY.md)
+defines the disclosure route and safe reporting expectations without promising
+response deadlines or historical-version support. The issue chooser links to
+the private advisory form rather than requesting public vulnerability reports.
+
+This setting is live GitHub state, not enabled by adding `SECURITY.md`. Verify it
+with the API command below. Secret scanning, push protection and Dependabot are
+separate controls; this change does not reconfigure them or add project automation.
 
 ## Verify live settings
 
@@ -64,6 +75,7 @@ gh label list --repo crisesarmiento/opencode-routing-dashboard
 gh project field-list 6 --owner crisesarmiento --format json
 gh project item-list 6 --owner crisesarmiento --format json
 gh api repos/crisesarmiento/opencode-routing-dashboard/milestones
+gh api repos/crisesarmiento/opencode-routing-dashboard/private-vulnerability-reporting
 ```
 
 When changing safeguards, inspect existing rules first, preserve unrelated
