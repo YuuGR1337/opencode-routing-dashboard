@@ -1,5 +1,9 @@
 # PLAN
 
+## Biome patch alignment (PR #21)
+
+- [x] Align the configuration schema with Biome 2.6.5 without changing rule settings or formatting application code. Final acceptance requires local typecheck/lint/tests/build, no schema-version diagnostic and green final PR CI; no runtime or UI change.
+
 ## TypeScript 7 CSS compatibility (#22 / PR #20)
 
 - [x] Resolve the exact side-effect stylesheet import without weakening checks. Compiler regression failed before the declaration and passes afterward, accepting the existing stylesheet and rejecting an unresolved stylesheet. Local typecheck/lint/253 tests/build pass; final acceptance requires green PR #20 CI and maintainer merge. No runtime CSS or UI behavior changes.
