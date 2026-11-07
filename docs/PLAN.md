@@ -1,5 +1,9 @@
 # PLAN
 
+## TypeScript 7 CSS compatibility (#22 / PR #20)
+
+- [x] Resolve the exact side-effect stylesheet import without weakening checks. Compiler regression failed before the declaration and passes afterward, accepting the existing stylesheet and rejecting an unresolved stylesheet. Local typecheck/lint/253 tests/build pass; final acceptance requires green PR #20 CI and maintainer merge. No runtime CSS or UI behavior changes.
+
 Sign-off requires local checks and green branch CI. Evidence lives in
 [VERIFICATION.md](VERIFICATION.md); source limits and remaining issues are
 recorded in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).

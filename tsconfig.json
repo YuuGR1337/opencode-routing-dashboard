@@ -2,7 +2,8 @@
   "compilerOptions": {
     "target": "ESNext", "module": "ESNext", "moduleResolution": "bundler",
     "strict": true, "noUncheckedIndexedAccess": true, "skipLibCheck": true,
-    "jsx": "react-jsx", "types": ["bun"], "noEmit": true
+    "jsx": "react-jsx", "types": ["bun"], "noEmit": true,
+    "allowArbitraryExtensions": true
   },
   "include": ["src", "test", "web", "scripts"]
 }

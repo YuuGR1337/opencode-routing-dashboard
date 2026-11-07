@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 ## [Unreleased]
 
 ### Maintenance
+- Update TypeScript to 7.0.2 and declare the existing stylesheet as an exact side-effect asset, preserving errors for unresolved CSS imports.
 - Configure weekly Dependabot proposals for Bun and GitHub Actions against `develop`, without automatic merging; document native issue auto-add setup and manual approval triage.
 - Add a proposal/research intake form that distinguishes evaluation from implementation approval, plus a private vulnerability reporting policy and issue-chooser link.
 - Complete the collaboration baseline: squash-only protected PRs, current CI and resolved conversations for administrators too, a task label, and an explicit proposal/approval project workflow without mandatory external reviews for a sole maintainer.
