@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 ## [Unreleased]
 
 ### Maintenance
+- Record the accepted Lane Bay design contract in `docs/DESIGN.md` (graphite tokens, type scale, narrow-width hierarchy, evidence-preserving states, deferred items) as documentation only; the shipped UI keeps the previous identity until the separately approved implementation lands (#32, #33).
 - Require durable, privacy-safe progress records in associated issues for material decisions, research findings, validation results and handoffs, without expanding implementation or publication permissions.
 - Strengthen project agent workflows with approval/worktree/release preflights, evidence-contract and isolated UI-verification skills, dry-run evaluation cases, and structural guidance checks; document the product roadmap and Electron direction without implementing or approving future features.
 - Update Biome to 2.6.5 and align its configuration schema without changing lint rules or formatting application code.
