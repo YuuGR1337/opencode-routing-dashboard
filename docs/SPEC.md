@@ -20,7 +20,7 @@ The UI follows [DESIGN.md](DESIGN.md) (switchboard concept, max density, anti-sl
 - Start < 1 s on 10k log lines; tolerate missing files.
 - Config via env/flags; Linux + macOS.
 
-## Data sources (formats observed 2026-11-03, opencode 2.2.5)
+## Data sources (formats observed 2026-11-03, opencode 2.2.5; stats contract re-verified 2026-11-07, opencode 2.2.6)
 Default dir: `~/.local/state/opencode/`. See `fixtures/` for anonymized samples.
 
 ### jev-observe.jsonl
@@ -50,8 +50,8 @@ Top-level keys: `range{from,to}` (epoch ms), `sessions`, `subagents`, `prompts`,
 `activeDays`, `streak`, `activity`, `models[{model{id,providerID,variant},steps,tokens{…},cost}]`.
 Subscription providers (e.g. `claude-code`) report `cost: 0`.
 
-### Not available (as of opencode 2.2.5)
-No explicit fallback event in logs; agent-per-step is not in Jev logs (only the session's agent at context time).
+### Not available (as of opencode 2.2.6)
+No explicit fallback event in logs; agent-per-step is not in Jev logs (only the session's agent at context time). OpenCode's `session.retry.scheduled` event (unchanged from 2.2.5) records a scheduled retry without a model and is not consumed by the dashboard; see issue #6.
 
 ## Evidence limits and implementation decisions
 - Actual delegated agent, execution model/provider/variant, per-message tokens and cost are **not available** in the supplied logs. The observe `model` is the classifier model, not the execution model. Render unavailable fields explicitly; never attribute aggregate stats to a message.
