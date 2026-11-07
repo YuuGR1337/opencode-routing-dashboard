@@ -4,6 +4,10 @@ Sign-off requires local checks and green branch CI. Evidence lives in
 [VERIFICATION.md](VERIFICATION.md); source limits and remaining issues are
 recorded in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
+## Repository collaboration safeguards (#12)
+
+- [ ] Align live branch protections and merge settings, restore the task label, track proposals separately from approved work in the repository project, and protect release publication against tags outside `main` history. Completion requires regression evidence, local checks and green PR CI; see [REPOSITORY.md](REPOSITORY.md).
+
 - [x] **M0 Scaffold** – repo, docs, CI (done in initial commit; validated with the complete branch).
 - [x] **M1 Parsers** – schemas for the 3 JSONL formats + stats JSON; tests on `fixtures/`; malformed-line counting.
 - [x] **M2 Core** – join observe/route by message; agreement matrix; usage per model/provider/variant; error rollups; fallback detection vs `oh-my-opencode-slim.json` active preset (or "not detectable").

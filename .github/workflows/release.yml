@@ -1,5 +1,6 @@
 # Runs on version tags (vX.Y.Z) pushed to main. Verifies the tag matches package.json,
-# re-runs checks and publishes a GitHub Release with the CHANGELOG section.
+# bounded ancestry guard (tagged commit must be ancestor of origin/main), re-runs checks
+# and publishes a GitHub Release with the CHANGELOG section.
 name: release
 on:
   push:
@@ -13,6 +14,10 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify release ref is reachable from origin/main (ancestry guard)
+        run: bash .github/workflows/verify-release-ref.sh
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - name: Tag matches package.json

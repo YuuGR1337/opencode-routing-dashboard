@@ -5,6 +5,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+### Maintenance
+- Complete the collaboration baseline: squash-only protected PRs, current CI and resolved conversations for administrators too, a task label, and an explicit proposal/approval project workflow without mandatory external reviews for a sole maintainer.
+- Guard release publication against tags outside `main` history, with local Git regression coverage; document issue planning and repository administration.
+
 ### Added in 0.2.0
 - M7: read-only headless agents, SSH-first remote sources, explicit authenticated non-loopback binds, bounded HTTP/SSE collection, reconnect health and namespaced source identities.
 - M8: user-configured subscription quota estimates, evidence-aware preset comparisons, sampled slim config timelines, debounced alerts and opt-in desktop notifications.
