@@ -125,7 +125,7 @@ Orca logs were located at `~/.config/orca/logs/` (`daemon.log`,
 `main.trace.ndjson*`); these are research evidence only, not dashboard inputs.
 The dashboard never scrapes terminal text or prompt strings to infer a client.
 
-Installed OpenCode 2.2.5 reports these paths through `debug paths`:
+Installed OpenCode 2.2.5 and 2.2.6 report the same paths through `debug paths`:
 
 | Kind | Observed default (portable home notation) |
 | --- | --- |

@@ -15,7 +15,7 @@ const cap = 4 * 1024 * 1024;
 async function run(command: string, args: string[], signal: AbortSignal): Promise<string> {
   const env = { ...process.env };
   for (const key of Object.keys(env)) if (key.startsWith("OTEL_EXPORTER_")) delete env[key];
-  // Not present in the verified OpenCode 2.2.5 build; do not claim it is a safeguard.
+  // Not present in the verified OpenCode 2.2.5 or 2.2.6 builds; do not claim it is a safeguard.
   delete env.OPENCODE_PURE;
   Object.assign(env, {
     OPENCODE_DISABLE_MODELS_FETCH: "1",
