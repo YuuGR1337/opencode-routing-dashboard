@@ -2,6 +2,18 @@
 
 All fixtures are anonymized. Checks run on the feature branch; no real logs or credential files are used.
 
+## Agent guidance and roadmap maintenance (2026-11-07)
+
+This change adds contributor procedures, documentation and static artifact tests only. It does not implement the proposed identity, Electron app, service lifecycle, diagnostics, multi-harness integration, or evidence features; it grants no new access and installs no external skill/dependency.
+
+- Structural red: copy the final `test/agent-guidance.test.ts` into an isolated pre-change `origin/develop` artifact tree and run `bun --no-env-file test test-agent-guidance.test.ts` there → exit 1, three failures on missing new skills/docs/cases. The original first capture also showed absent artifacts but its shell pipeline recorded the wrong status; it is not used as exit-code evidence. The isolated rerun records the actual exit 1. This is an artifact-contract red, not a runtime behavioral regression.
+- Reconciled green: `bun --no-env-file run typecheck` → exit 0; `bun --no-env-file run lint` → exit 0; `bun --no-env-file test` → exit 0, **256 tests / 39 files**, no failures; `bun --no-env-file scripts/build.ts` → exit 0; `git diff --check` → exit 0. The build invokes the same script as `bun run build` directly so automatic dotenv loading stays disabled in the Bun invocation.
+- The three new Bun tests check canonical skill metadata, existing local Markdown targets, and ten dry-run case structures/settings/graders. They do not prove YAML support beyond the checked subset, external-link availability, automatic skill discovery, model compliance, safety enforcement, or skill effectiveness.
+- Isolated guard probes: a copy of the final public guidance artifacts passes the three focused tests (exit 0); removing required whitespace from a prompt-setting separator fails (exit 1), and removing a required case directory fails (exit 1). These probes mutate only an owned temporary copy, not working files. Final focused run passes all three tests (exit 0).
+- [Qualitative evaluation](AGENT_EVALUATION.md): two paired reasoning scenarios, with and without explicit skill loading; the UI lane was revalidated after procedural clarification. Both baselines already identified important safety boundaries. The skill-informed UI response named more repository-specific harness limits, but the small, partly guided sample establishes no general performance gain. Other cases and automatic triggering remain unverified. A static local viewer was generated from the four responses with existing skill-creator tooling; no server or additional dependency was needed, and no human viewer-feedback round is claimed.
+- Procedure review checked the existing verifier and demo scripts: canonical/exchange dataset separation, implicit demo builds, simulated EventSource coverage, viewport gaps, fixed screenshot names, replay versus live pause, and reduced-motion assertion limits are now explicit. No new browser/desktop runtime, screenshot, accessibility-compliance, or cross-platform validation was performed for this guidance-only change. Existing runtime evidence below is historical, not a fresh run.
+- Final-head CI and maintainer merge remain separate gates, recorded on the PR. No release/tag is created and no proposal is marked Approved by this maintenance work.
+
 ## Evidence path
 
 - M1: fixture parsers, malformed and nested-input rejection, unknown-field retention; failing test before implementation.

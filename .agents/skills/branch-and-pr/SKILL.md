@@ -1,14 +1,27 @@
 ---
 name: branch-and-pr
-description: Create the work branch and open the PR into develop with the template. Use when starting any issue or finishing implementation.
+description: Start explicitly approved implementation or documentation work and prepare its PR to develop. Use for branch/PR preparation, not read-only research, proposal triage, or brainstorming.
 ---
 
 # Branch and PR
 
-1. `git switch develop && git pull --ff-only && git switch -c <type>/<issue>-<slug>`.
-2. Commit in small conventional commits. Never commit to `develop`/`main`; never force-push shared branches.
-3. Before opening: `bun run typecheck && bun run lint && bun test` (paste commands + exit codes).
-4. Add a line under `## [Unreleased]` in `CHANGELOG.md` for user-visible changes.
-5. `gh pr create --base develop --fill-first` then edit the body with `.github/pull_request_template.md`:
-   `Closes #<n>`, criteria → evidence table, failing-before/passing-after test, files touched, tests changed, screenshots if UI.
-6. Review feedback: fix in new commits on the same branch; reply to each comment with the commit SHA. Do not merge your own PR.
+## Preflight
+
+1. Confirm the maintainer authorized this scope. An open issue, `Todo`, or a research request is not implementation approval. For issue-backed work, check its body and project `Decision`; resolve missing or conflicting approval before coding. A direct request can authorize a bounded task without an issue; do not approve unrelated proposals or create an issue just to satisfy this workflow.
+2. Read [repository rules](../../../AGENTS.md) and [contribution policy](../../../CONTRIBUTING.md). Inspect `pwd`, `git status --short`, current branch, remotes, and `git worktree list` before changing branches.
+3. If there are unrelated local changes, stop and ask how to preserve them. Do not stash, reset, clean, overwrite, or switch them away automatically. Reuse an existing task branch/PR only after confirming its identity and base; do not create duplicates.
+
+## Branch and implement
+
+4. Fetch `origin develop` and verify the starting point. On a clean worktree where `develop` is available, use `git switch develop`, `git pull --ff-only`, then `git switch -c <type>/<issue>-<slug>`. If another worktree owns `develop`, create the task branch directly from the fetched `origin/develop` instead of switching or moving that worktree. Without an issue, use `<type>/<slug>`. Stop on divergence or an unexpected existing branch rather than forcing it.
+5. Make small conventional commits. Never commit or push to `develop`/`main`, force-push shared branches, or merge your own PR. Do not move another agent's worktree.
+6. Follow [tests-first](../tests-first/SKILL.md) for behavior changes. Update `CHANGELOG.md` `[Unreleased]` and `docs/PLAN.md` as required by the contribution policy; explain any documentation N/A rather than marking unrelated roadmap features complete.
+
+## Verify and open
+
+7. Use focused checks while iterating, then run the final integrated `bun run typecheck`, `bun run lint`, and `bun test` once the writers are reconciled. Include `bun run build` for changed assets/build integration or when required by the task. Record exact commands, exit codes, relevant failures, and skipped checks. Later edits invalidate affected evidence; recheck proportionately without dropping required gates.
+8. Prepare the complete body from [the PR template](../../../.github/pull_request_template.md) before creating the PR. Map criteria to evidence, list files and test changes, and distinguish static checks from behavioral evaluation. Use `Closes #<n>` only for an issue whose accepted scope is actually delivered; otherwise use `Related to #<n>` or explain that there is no closing issue. Do not leave `Closes #` as a placeholder.
+9. Push only the task branch. Open with `gh pr create --base develop --title "<conventional title>" --body-file <prepared-body-path>`, or update the verified existing PR. Do not publish a provisional body through `--fill-first`. Inspect final-head CI; pending or failed checks are not green acceptance.
+10. Address review on the same branch with new commits and reply with evidence. The maintainer reviews and merges. No tags, release publication, new permissions, or dependency installation is implied by preparing a PR.
+
+See [agent workflow guidance](../../../docs/AGENT_WORKFLOWS.md) for discovery, evaluation cases, and verification ownership.

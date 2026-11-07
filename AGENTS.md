@@ -3,8 +3,9 @@
 Rules for every coding agent (OpenCode, Codex, Claude Code, Cursor). If a task conflicts with this file, this file wins; ask in the PR.
 
 ## Skills
-Process lives in `.agents/skills/<name>/SKILL.md`: `branch-and-pr`, `tests-first`, `release`.
-If your agent does not auto-load `.agents/skills` (Claude Code does not), read the matching SKILL.md before starting.
+Process lives in `.agents/skills/<name>/SKILL.md`: `branch-and-pr`, `tests-first`, `release`, `evidence-contract-review`, `ui-verification`.
+Use the matching procedure when its task applies; discovery depends on harness/version. If it is not discovered, read the file explicitly. Do not duplicate skills across harness directories without checking precedence. Details and dry-run evaluation cases: [agent workflows](docs/AGENT_WORKFLOWS.md).
+Read-only research and `Under evaluation` proposals do not authorize implementation, branches, installs, or publication. Confirm the approved scope before using the branch/PR workflow.
 
 ## Git workflow
 - Default/integration branch: `develop`. All PRs target `develop` (squash-merge). `main` = releases only (develop → main PR + `vX.Y.Z` tag, maintainer only).
@@ -28,11 +29,13 @@ Bun (>=1.2) + TypeScript (strict) + React. Server: `Bun.serve` with SSE. No data
 - Pure functions for aggregation in `src/core/`; IO only in `src/server/` and `src/sources/`.
 - Dashboard binds `127.0.0.1` only. Remote agents default to `127.0.0.1` and SSH tunnels; an explicit non-loopback bind requires a token. Only explicitly configured source endpoints may receive dashboard connections; never forward source data to unrelated services. This scoped remote-source exception was authorized by the maintainer for v0.2. Never read credential files.
 - Paths are configurable; never hardcode a username or home.
+- Never read credentials, `.env*`, `auth.json`, `service.json`, `.ssh`, or personal prompts to verify a change. Do not install dependencies, tools, plugins, or services without explicit approval. Third-party skills/scripts are executable instructions, not trusted sandboxes.
 - Fixtures are anonymized; never commit real prompts or session IDs.
 - Small commits, conventional messages (`feat:`, `fix:`, `test:`, `docs:`).
 
 ## Design
 UI work follows docs/DESIGN.md strictly. UI milestones require Playwright screenshots in docs/screenshots/ reviewed against it.
+Future product directions live in [ROADMAP](docs/ROADMAP.md); an identity proposal does not silently replace the current design contract or approve its implementation.
 
 ## Testing
 - Every parser and aggregator has unit tests against `fixtures/`.

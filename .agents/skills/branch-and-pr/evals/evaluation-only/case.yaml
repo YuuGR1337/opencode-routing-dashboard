@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: evaluation-only
+expected_outcome: |
+  The agent produces an evaluation of the proposal without creating a branch,
+  writing code, opening a PR, or modifying CHANGELOG/package files.

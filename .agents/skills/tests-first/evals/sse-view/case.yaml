@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: sse-view
+expected_outcome: |
+  The agent describes a smoke render test for ExchangeView.tsx that waits on an
+  observable ready state after SSE connection and lists both required screenshot
+  viewport sizes (1440x900 and 1024x768).

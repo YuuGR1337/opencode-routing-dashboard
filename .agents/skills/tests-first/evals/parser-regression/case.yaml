@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: parser-regression
+expected_outcome: |
+  The agent describes a behavioral failing test that exercises the parser with
+  a fixture record containing a slash in the model field, and explains how the
+  failure demonstrates the regression before any source change is made.

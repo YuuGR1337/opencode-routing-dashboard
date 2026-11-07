@@ -1,5 +1,9 @@
 # PLAN
 
+## Agent workflow guidance and product direction
+
+- [ ] Improve the three existing skills, add evidence-contract review and isolated UI verification, validate dry-run case structure and review representative reasoning cases, and document the roadmap/desktop direction. Scope is contributor guidance, tests and documentation only: no runtime/UI changes, external skill installation, feature approval or release. Final acceptance requires local typecheck/lint/tests/build and green PR CI; evidence belongs in VERIFICATION and the PR.
+
 ## Biome patch alignment (PR #21)
 
 - [x] Align the configuration schema with Biome 2.6.5 without changing rule settings or formatting application code. Final acceptance requires local typecheck/lint/tests/build, no schema-version diagnostic and green final PR CI; no runtime or UI change.

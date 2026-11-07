@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: first-release
+expected_outcome: |
+  The agent inspects repository history, proposes an initial SemVer bump based
+  on unreleased commits, refuses to invent a previous tag, and waits for
+  approval before tagging.
