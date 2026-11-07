@@ -6,7 +6,7 @@ recorded in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
 ## Repository collaboration safeguards (#12)
 
-- [ ] Align live branch protections and merge settings, restore the task label, track proposals separately from approved work in the repository project, and protect release publication against tags outside `main` history. Completion requires regression evidence, local checks and green PR CI; see [REPOSITORY.md](REPOSITORY.md).
+- [x] Align live branch protections and merge settings, restore the task label, track proposals separately from approved work in the repository project, and protect release publication against tags outside `main` history. Live settings and local validation are verified (252 tests; final guard regression rerun: 6 passing tests). Final acceptance requires green [PR #13](https://github.com/crisesarmiento/opencode-routing-dashboard/pull/13) CI and maintainer merge; see [REPOSITORY.md](REPOSITORY.md).
 
 - [x] **M0 Scaffold** – repo, docs, CI (done in initial commit; validated with the complete branch).
 - [x] **M1 Parsers** – schemas for the 3 JSONL formats + stats JSON; tests on `fixtures/`; malformed-line counting.
