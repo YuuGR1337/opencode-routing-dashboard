@@ -29,14 +29,62 @@ linked to this repository. It tracks three independent fields:
 
 Issue labels classify work (`bug`, `task`, `enhancement`, `documentation`, etc.).
 Project fields do not replace the issue's goal, criteria, scope and dependencies.
-New issues must be added and maintained manually: no project auto-add or status
-synchronization has been configured. Closing an issue is not a substitute for
-checking its acceptance evidence and project fields.
+Until native auto-add is enabled and verified using the steps below, add new
+issues manually. `Decision` and `Work type` require manual triage; an empty
+Decision is not approval. Closing an issue is not a substitute for checking its
+acceptance evidence and project fields.
 
 Assign owners when work is claimed. Create version milestones only for approved
 release scope; proposals #4–#11 deliberately have no milestone or release date.
 Keep version milestones, `package.json`, the changelog and release tags aligned.
 No release schedule is implied by adding an issue to the project.
+
+### Native issue intake (maintainer setup)
+
+Auto-add activation is a GitHub web setting, not delivered by merging this file.
+No custom Action or new project credential is configured. Activation and live
+delivery still need maintainer confirmation.
+
+1. Open project #6, then the top-right **… → Workflows** menu.
+2. Select **Auto-add to project → Edit**.
+3. Select repository `crisesarmiento/opencode-routing-dashboard`. In the adjacent
+   filter, use `is:issue is:open` (the repository is a separate selector).
+4. Click **Save and turn on workflow**.
+5. Inspect **Item added to project** separately: if enabled, set Status to `Todo`.
+   Do not infer implementation approval from automatic status changes.
+6. Verify that the next real newly created or updated matching issue appears
+   without a manual `item-add`. Record its URL as evidence. Keep approval and work
+   type triage manual; do not open a fake vulnerability to test intake.
+
+Enabling auto-add does not bulk-import existing items. Later matching creation
+or update events can add them; manually add any existing issues still missing.
+The issue-only filter does not add Dependabot or other PRs. Project status
+workflows and custom approval fields are distinct from repository CI checks.
+
+Reference: [GitHub auto-add documentation](https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/adding-items-automatically).
+
+## Dependency update proposals
+
+`.github/dependabot.yml` checks existing Bun dependencies and GitHub Actions
+weekly on Mondays at 09:00 UTC. Both ecosystems target `develop` and allow at most
+three open version-update PRs each, labeled `dependencies` with a `chore` commit
+prefix. Bun uses the existing text `bun.lock`; no package manager migration,
+dependency installation or version bump is part of this configuration.
+
+The file becomes active on the default branch after merge. Verify the first
+Dependabot run in GitHub's dependency graph/update UI and inspect any resulting
+PR's target and lockfile changes. Local YAML validation cannot establish that a
+hosted updater has run successfully. Dependabot security updates are a separate
+feature targeting the default branch (`develop`); their enablement does not
+replace this version-update schedule.
+
+Auto-merge remains disabled. All update PRs require protected-branch CI and
+maintainer review/merge, including major updates. Before merging, check release
+notes and compatibility, update changelog evidence as appropriate, and rerun the
+normal checks. Track a separate issue when an update needs product changes.
+No private registry credentials or new services are configured.
+
+Reference: [supported ecosystems, including Bun](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories).
 
 ## Templates, skills and checks
 
