@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: unsupported-execution
+expected_outcome: |
+  The agent maps the requested metrics to the available contract fields,
+  labels per-model success/task-cost/fallback-inference as unsupported, and
+  proposes a concrete contract extension rather than inventing data.

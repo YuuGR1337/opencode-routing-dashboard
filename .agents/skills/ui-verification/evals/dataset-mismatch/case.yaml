@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: dataset-mismatch
+expected_outcome: |
+  The agent identifies canonical session/timestamp assumptions being applied
+  to the exchange demo, selects an isolated temporary copy of the canonical
+  fixtures/ inputs for canonical checks, and keeps exchange smoke separate.
+  It neither weakens assertions nor declares a product regression from this mismatch.

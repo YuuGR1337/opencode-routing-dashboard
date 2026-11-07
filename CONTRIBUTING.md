@@ -17,6 +17,9 @@
 - Claim an issue before implementation and assign its owner. Move approved work to `In Progress`; mark `Done` only after acceptance and merge, or documented research closure.
 - Assign a version milestone only when the maintainer approves scope for that release. Do not invent dates, priorities, owners or release commitments for proposals.
 - Link the PR using `Closes #<issue>` and map acceptance criteria to evidence. Update `CHANGELOG.md` and `docs/PLAN.md` in the same PR.
+- Use `Closes` only for delivered, accepted issue scope; link proposals with `Related to` when documenting a direction without implementing it. Explicit maintainer requests may authorize bounded work without an issue; do not create or approve unrelated proposals automatically.
+
+Project-specific procedures are in `.agents/skills/`; see [agent workflows](docs/AGENT_WORKFLOWS.md) for canonical paths, verification ownership and dry-run cases. Skills guide agents; they do not grant access, override project policy or replace CI/permission enforcement. Product direction is tracked separately in [the roadmap](docs/ROADMAP.md) and [decision records](docs/decisions/README.md).
 
 ## Repository safeguards
 - `develop` and `main` require a PR, the `check` CI result on an up-to-date branch, resolved review conversations and linear history. Force pushes and branch deletion are disabled; administrators are subject to protection too.

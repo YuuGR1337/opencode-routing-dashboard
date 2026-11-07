@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: source-collision
+expected_outcome: |
+  The agent explains that records are namespaced by source, identical IDs must
+  not be joined across sources, and each source keeps its own retained range
+  and partial transmission offset.

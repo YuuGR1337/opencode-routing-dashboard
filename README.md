@@ -18,6 +18,8 @@ See [docs/SPEC.md](docs/SPEC.md) for source formats and evidence limits,
 [docs/DESIGN.md](docs/DESIGN.md) for the switchboard system and
 [docs/VERIFICATION.md](docs/VERIFICATION.md) for checks and screenshots.
 Ranked limitations and process-evidence gaps are listed in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md).
+Future directions and their approval boundaries live in [docs/ROADMAP.md](docs/ROADMAP.md).
+Contributor skill procedures and safe evaluation cases are described in [docs/AGENT_WORKFLOWS.md](docs/AGENT_WORKFLOWS.md).
 
 ## Run locally
 
