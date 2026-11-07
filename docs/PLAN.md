@@ -2,7 +2,7 @@
 
 ## Agent workflow guidance and product direction
 
-- [ ] Improve the three existing skills, add evidence-contract review and isolated UI verification, validate dry-run case structure and review representative reasoning cases, and document the roadmap/desktop direction. Scope is contributor guidance, tests and documentation only: no runtime/UI changes, external skill installation, feature approval or release. Final acceptance requires local typecheck/lint/tests/build and green PR CI; evidence belongs in VERIFICATION and the PR.
+- [x] Improve the three existing skills, add evidence-contract review and isolated UI verification, validate dry-run case structure and review representative reasoning cases, and document the roadmap/desktop direction. Local typecheck/lint/256 tests/build and implementation-head CI passed; evidence is in VERIFICATION and PR #30. Scope is contributor guidance, tests and documentation only: no runtime/UI changes, external skill installation, feature approval or release. The documentation sign-off reruns final-head CI; maintainer review/merge remains separate.
 
 ## Biome patch alignment (PR #21)
 
