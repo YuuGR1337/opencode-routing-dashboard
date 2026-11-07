@@ -12,6 +12,11 @@ Read-only research and `Under evaluation` proposals do not authorize implementat
 - Branches `<type>/<issue>-<slug>` (`feat|fix|chore|test|docs|refactor`). Never push to `develop`/`main`, never force-push shared branches, never delete branches or push tags unless told.
 - Conventional commits; SemVer; update `CHANGELOG.md` `[Unreleased]`. Details: CONTRIBUTING.md.
 
+## Issue progress records
+- For issue-linked work, keep the associated issue as the durable record of material decisions, scope/authorization changes, research findings, validation results and blockers or next steps. Record them as they arise and at handoff; chat-only updates are not enough.
+- Link source/version references, PRs and relevant verification evidence. Distinguish planned, source-reviewed, synthetic and runtime-verified results; include commands and exit statuses when reporting executed checks. Summarize rather than publish raw logs, personal prompts, session IDs or secrets.
+- Issue updates do not authorize implementation, new access, installations or closure. If publication is not authorized or available, provide a sanitized draft to the maintainer and report the blocker instead of silently omitting the record. Do not create issues solely to satisfy this rule.
+
 ## Stack
 Bun (>=1.2) + TypeScript (strict) + React. Server: `Bun.serve` with SSE. No database; state is derived from files.
 
