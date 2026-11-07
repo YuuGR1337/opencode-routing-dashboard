@@ -1,0 +1,39 @@
+name: Proposal
+description: Research or feature proposal (evaluation first)
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Evaluation only:** Submitting this issue does **not** authorize implementation or PRs, grant access or scopes, or commit the project to a release. Follow the project's approval process before starting work.
+  - type: markdown
+    attributes:
+      value: |
+        **Safe data only.** Never include credentials, prompts, or real session IDs. Use anonymized fixtures or descriptions only.
+  - type: dropdown
+    id: type
+    attributes: {label: "Type", options: ["feat", "research"]}
+    validations: {required: true}
+  - type: textarea
+    id: goal
+    attributes: {label: "Goal / problem", description: "What is the goal or the problem to address?"}
+    validations: {required: true}
+  - type: textarea
+    id: proposal
+    attributes: {label: "Proposal / evaluation questions", description: "Key elements of the proposal or evaluation questions to explore"}
+    validations: {required: true}
+  - type: textarea
+    id: evidence
+    attributes: {label: "Available evidence / data gaps", description: "Existing data, logs, evidence or known gaps"}
+    validations: {required: true}
+  - type: textarea
+    id: scope
+    attributes: {label: "Scope / exclusions", description: "In scope items and explicitly excluded items"}
+    validations: {required: true}
+  - type: textarea
+    id: criteria
+    attributes: {label: "Observable evaluation acceptance criteria", description: "Observable, measurable criteria to evaluate the proposal"}
+    validations: {required: true}
+  - type: textarea
+    id: references
+    attributes: {label: "Dependencies / references (optional)", description: "Related issues, docs, links, or dependencies"}

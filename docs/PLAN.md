@@ -8,6 +8,10 @@ recorded in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
 - [x] Align live branch protections and merge settings, restore the task label, track proposals separately from approved work in the repository project, and protect release publication against tags outside `main` history. Live settings and local validation are verified (252 tests; final guard regression rerun: 6 passing tests). Final acceptance requires green [PR #13](https://github.com/crisesarmiento/opencode-routing-dashboard/pull/13) CI and maintainer merge; see [REPOSITORY.md](REPOSITORY.md).
 
+## Proposal intake and private security reports (#14)
+
+- [x] Add a proposal/research form and private security contact link, publish SECURITY.md, enable and verify private vulnerability reporting, and document the safe intake process. YAML structure and local typecheck/lint/252 tests/build verified. No project automation, dependency updates or release is included. Final acceptance requires green PR CI and maintainer merge; the issue chooser is available after the default-branch merge.
+
 - [x] **M0 Scaffold** – repo, docs, CI (done in initial commit; validated with the complete branch).
 - [x] **M1 Parsers** – schemas for the 3 JSONL formats + stats JSON; tests on `fixtures/`; malformed-line counting.
 - [x] **M2 Core** – join observe/route by message; agreement matrix; usage per model/provider/variant; error rollups; fallback detection vs `oh-my-opencode-slim.json` active preset (or "not detectable").
