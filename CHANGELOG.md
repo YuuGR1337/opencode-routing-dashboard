@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 ## [Unreleased]
 
 ### Maintenance
+- Require durable, privacy-safe progress records in associated issues for material decisions, research findings, validation results and handoffs, without expanding implementation or publication permissions.
 - Strengthen project agent workflows with approval/worktree/release preflights, evidence-contract and isolated UI-verification skills, dry-run evaluation cases, and structural guidance checks; document the product roadmap and Electron direction without implementing or approving future features.
 - Update Biome to 2.6.5 and align its configuration schema without changing lint rules or formatting application code.
 - Update TypeScript to 7.0.2 and declare the existing stylesheet as an exact side-effect asset, preserving errors for unresolved CSS imports.
