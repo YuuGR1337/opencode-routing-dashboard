@@ -5,7 +5,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+### Fixed
+- Stop setting `OPENCODE_DISABLE_LSP_DOWNLOAD` for the stats child (and strip any inherited value): the token is absent from the OpenCode 2.2.5 and 2.2.6 binaries, so it was not a verified safeguard.
+
 ### Maintenance
+- Re-verify the stats contract, CLI flags and default paths against installed OpenCode 2.2.6 (isolated empty profile) and adopt it as the documented baseline.
 - Require durable, privacy-safe progress records in associated issues for material decisions, research findings, validation results and handoffs, without expanding implementation or publication permissions.
 - Strengthen project agent workflows with approval/worktree/release preflights, evidence-contract and isolated UI-verification skills, dry-run evaluation cases, and structural guidance checks; document the product roadmap and Electron direction without implementing or approving future features.
 - Update Biome to 2.6.5 and align its configuration schema without changing lint rules or formatting application code.
