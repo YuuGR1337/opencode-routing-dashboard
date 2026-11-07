@@ -4,13 +4,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startStats } from "../src/sources/stats";
 
-test("stats uses verified 2.2.5 flags without unsupported OPENCODE_PURE", async () => {
+test("stats uses verified 2.2.5/2.2.6 flags without unsupported OPENCODE_PURE or OPENCODE_DISABLE_LSP_DOWNLOAD", async () => {
   const dir = await mkdtemp(join(tmpdir(), "ord-safe-stats-"));
   const script = join(dir, "fake");
   const output = join(dir, "result.json");
   await writeFile(
     script,
-    `#!${process.execPath}\nawait Bun.write(${JSON.stringify(output)}, JSON.stringify({ args: process.argv.slice(2), disabled: ["OPENCODE_DISABLE_MODELS_FETCH", "OPENCODE_DISABLE_AUTOUPDATE", "OPENCODE_DISABLE_LSP_DOWNLOAD"].every(key => process.env[key] === "1"), pure: Object.hasOwn(process.env, "OPENCODE_PURE"), exporter: Object.keys(process.env).some(key => key.startsWith("OTEL_EXPORTER_")) }));\nconsole.log('{}');\n`,
+    `#!${process.execPath}\nawait Bun.write(${JSON.stringify(output)}, JSON.stringify({ args: process.argv.slice(2), disabled: ["OPENCODE_DISABLE_MODELS_FETCH", "OPENCODE_DISABLE_AUTOUPDATE"].every(key => process.env[key] === "1"), pure: Object.hasOwn(process.env, "OPENCODE_PURE"), lsp: Object.hasOwn(process.env, "OPENCODE_DISABLE_LSP_DOWNLOAD"), exporter: Object.keys(process.env).some(key => key.startsWith("OTEL_EXPORTER_")) }));\nconsole.log('{}');\n`,
   );
   await chmod(script, 0o700);
   process.env.OTEL_EXPORTER_ORD_TEST = "synthetic";
@@ -22,6 +22,7 @@ test("stats uses verified 2.2.5 flags without unsupported OPENCODE_PURE", async 
     expect(result.args).toContain("stats");
     expect(result.disabled).toBe(true);
     expect(result.pure).toBe(false);
+    expect(result.lsp).toBe(false);
     expect(result.exporter).toBe(false);
   } finally {
     await poller.stop();
