@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
+import { useSyncExternalStore } from "react";
 import type { DashboardState, FlowEvent } from "../../src/core/aggregate";
-import { bayLayout } from "../bay";
+import { bayLayout, NARROW_ROW_H } from "../bay";
 import { clientText, evidence } from "../exchange";
 import type { ReplayCoverage, Speed } from "../replay";
 import {
@@ -16,16 +17,29 @@ import {
   type Role,
   SOURCES,
   STATUS_CLASS,
-  STATUS_GLYPH,
-  trunc,
+  STATUS_ICON,
 } from "./format";
-import { Unavailable } from "./parts";
+import { CtxRing, RoleShape, StateIcon, Unavailable } from "./parts";
 import { ReplayBar, ReplayStart } from "./ReplayBar";
 
 // Patch bay geometry comes from bayLayout (SVG user units == CSS px at 1:1).
 const laneX = (i: number) => 60 + i * 22;
 /** The per-role tally needs room under the bay; beyond this many calls the jack counts carry the numbers. */
 const TALLY_MAX_CALLS = 4;
+
+const NARROW_QUERY = "(max-width: 1280px)";
+/** True at the narrow tier, so bay rows follow the 36 px calls rail. Server rendering and tests use the wide tier. */
+function useNarrow() {
+  return useSyncExternalStore(
+    (notify) => {
+      const query = window.matchMedia?.(NARROW_QUERY);
+      query?.addEventListener("change", notify);
+      return () => query?.removeEventListener("change", notify);
+    },
+    () => window.matchMedia?.(NARROW_QUERY).matches ?? false,
+    () => false,
+  );
+}
 
 export type ReplayView = {
   /** Session events up to and including the cursor, oldest first. */
@@ -63,7 +77,8 @@ function PatchBay({
   onReplayStart?: () => void;
   waiting?: WaitingSource;
 }) {
-  const bay = bayLayout(rail.length, RAIL_CALLS);
+  const narrow = useNarrow();
+  const bay = bayLayout(rail.length, RAIL_CALLS, narrow ? NARROW_ROW_H : undefined);
   const { jackX: JACK_X, ctxX: CTX_X, rowH: ROW_H, jackY } = bay;
   const counts = new Map<string, { sug: number; ctx: number; agree: number }>();
   for (const role of ROLES) counts.set(role, { sug: 0, ctx: 0, agree: 0 });
@@ -81,10 +96,7 @@ function PatchBay({
   return (
     <section className="panel bay" aria-label="patch bay">
       <h2 className="panel-title">
-        patch bay{" "}
-        <span className="dim">
-          · dashed = Jev suggestion · hollow ctx = recorded context agent · no execution path recorded
-        </span>
+        patch bay <span className="dim">· suggestion vs recorded context</span>
       </h2>
       <div className="bay-body">
         <div className="bay-main">
@@ -122,9 +134,10 @@ function PatchBay({
               return (
                 <g key={role} className={`jack r-${role}${lit ? " lit" : ""}`} data-role={role} data-jack="role">
                   {focusArrived && role === sug ? <circle className="pulse" cx={JACK_X} cy={y} r={9} /> : null}
-                  <circle className="jack-ring" cx={JACK_X} cy={y} r={9} />
+                  <RoleShape role={role} size={22} x={JACK_X - 11} y={y - 11} />
                   <circle className="jack-hole" cx={JACK_X} cy={y} r={3.5} />
                   <circle className={`ctx-jack${ctx === role ? " on" : ""}`} data-jack="ctx" cx={CTX_X} cy={y} r={5} />
+                  {ctx === role ? <circle className="ctx-dot" cx={CTX_X} cy={y} r={1.5} /> : null}
                   {lit ? (
                     <text className="tick" x={CTX_X} y={y - 11} textAnchor="middle">
                       =
@@ -140,7 +153,12 @@ function PatchBay({
               );
             })}
             {sug && ctx && sug !== ctx ? (
-              <path className="kink" d={`M${JACK_X + 9},${jackY(sug)} H${CTX_X - 14} V${jackY(ctx)} H${CTX_X - 5}`} />
+              <>
+                <path className="kink" d={`M${JACK_X + 9},${jackY(sug)} H${CTX_X - 14} V${jackY(ctx)} H${CTX_X - 5}`} />
+                <text className="differs-label" x={CTX_X - 18} y={(jackY(sug) + jackY(ctx)) / 2 + 4} textAnchor="end">
+                  differs
+                </text>
+              </>
             ) : null}
           </svg>
           {bay.sparse && rail.length > 0 && rail.length <= TALLY_MAX_CALLS ? (
@@ -178,6 +196,7 @@ function PatchBay({
       ) : (
         <ReplayStart disabled={!focus} onStart={onReplayStart ?? (() => {})} />
       )}
+      {focus ? <CompactFocus event={focus} /> : null}
       <p className="panel-foot dim">
         {focus
           ? `focus ${fmtTs(focus.ts)} · ${
@@ -186,9 +205,44 @@ function PatchBay({
           : "no call in focus"}
         {` · counts over ${replay ? "events replayed so far" : scope}`}
       </p>
+      <p className="panel-foot dim bay-legend">
+        <span>dashed = Jev suggestion · hollow ring = recorded context agent, not proof of delegation</span>
+        <span>no execution path recorded</span>
+      </p>
     </section>
   );
 }
+
+/** Two-line call in focus for widths where the full readout is hidden. Only recorded fields; exec stays —. */
+function CompactFocus({ event: e }: { event: FlowEvent }) {
+  const comparable = isRole(e.suggestion) && isRole(e.contextAgent);
+  const same = comparable && e.suggestion === e.contextAgent;
+  const failed = e.errors.length > 0;
+  return (
+    <div className="focus-compact" aria-label="call in focus">
+      <span className="focus-line">
+        {e.suggestion ? `suggest ${e.suggestion} ${fmt2(e.confidence)}` : `suggest ${suggestionText(e)}`}
+        {failed ? (
+          <>
+            {" · "}
+            <span className="glyph err" data-glyph="error" aria-hidden="true">
+              <StateIcon kind="error" />
+            </span>
+            <span className="err">{`failure ${e.errors[0]}`}</span>
+          </>
+        ) : null}
+        {` · ctx ${e.contextAgent ?? "—"}${comparable ? ` · ${same ? "same role" : "differs"}` : ""}`}
+      </span>
+      <span className="focus-line">
+        {`${e.decision ?? "no decision"} · classifier ${e.latency === null ? "—" : `${e.latency}ms`} · exec — · fallback not detectable`}
+      </span>
+    </div>
+  );
+}
+
+/** Suggestion text of a call. A call with an error and no suggestion says the classifier failed, never a blank. */
+const suggestionText = (e: FlowEvent) =>
+  e.suggestion ? `${e.suggestion} ${fmt2(e.confidence)}` : e.errors.length > 0 ? "— classifier failed" : null;
 
 function FocusReadout({ event: e }: { event: FlowEvent }) {
   const tag = evidence(e);
@@ -202,16 +256,26 @@ function FocusReadout({ event: e }: { event: FlowEvent }) {
           ["directory", tag.directory ?? null, false],
         ] as [string, string | null, boolean][])
       : []),
-    ["suggest", e.suggestion ? `${e.suggestion} ${fmt2(e.confidence)}` : null, false],
+    // DESIGN "Selected-call detail" order. Error rows read: suggestion — classifier failed, failure <name>, latency <n> ms.
+    ["suggest", suggestionText(e), false],
+    ...(e.errors.length ? ([["failure", e.errors.join(" | "), false]] as [string, string | null, boolean][]) : []),
     ["needs oracle", e.needsOracle === null ? null : fmt2(e.needsOracle), false],
     ["decision", e.decision ? `${e.decision}${e.reason ? ` · ${e.reason}` : ""}` : null, false],
     ["ctx agent", e.contextAgent, false],
-    ["exec agent", null, true],
-    ["exec model", null, true],
+    [
+      "ctx vs suggestion",
+      isRole(e.suggestion) && isRole(e.contextAgent)
+        ? e.suggestion === e.contextAgent
+          ? "same role"
+          : "differs"
+        : null,
+      false,
+    ],
     ["classifier", e.classifierModel, false],
-    ["fallback", "not detectable", false],
     ["latency", e.latency === null ? null : `${e.latency} ms`, false],
-    ["errors", e.errors.length ? e.errors.join(" | ") : null, false],
+    ["exec agent/model", null, true],
+    ["fallback", "not detectable", false],
+    ["tokens / cost", null, true],
   ];
   return (
     <dl className="focus">
@@ -249,7 +313,7 @@ function SilentExchange({ state, waiting }: { state: DashboardState; waiting?: W
               return (
                 <li key={name} className={STATUS_CLASS[s.status]}>
                   <span className="glyph" aria-hidden="true">
-                    {STATUS_GLYPH[s.status]}
+                    <StateIcon kind={STATUS_ICON[s.status]} />
                   </span>
                   <b>{name}</b>
                   <span className="dim">{` ${s.status}${s.detail ? ` · ${s.detail}` : ""}`}</span>
@@ -293,12 +357,18 @@ function CallsRail({
           >
             <span className="call-ts">
               {e.errors.length ? (
-                <span className="glyph err" aria-label="error">
-                  ▲
+                <span className="glyph err" role="img" aria-label="error">
+                  <StateIcon kind="error" />
                 </span>
               ) : null}
               {evidence(e).sourceId ? <span className="call-src">{`${evidence(e).sourceId} `}</span> : null}
               {fmtTs(e.ts)}
+              {e.suggestion ? (
+                <span className={`call-role${isRole(e.suggestion) ? ` r-${e.suggestion}` : ""}`}>
+                  {isRole(e.suggestion) ? <RoleShape role={e.suggestion} size={11} /> : null}
+                  {`${e.suggestion} ${fmt2(e.confidence)}`}
+                </span>
+              ) : null}
             </span>
             <span className="call-text">{e.prompt ?? "(no prompt recorded)"}</span>
           </li>
@@ -310,16 +380,16 @@ function CallsRail({
   );
 }
 
-function ModelRail({ state }: { state: DashboardState }) {
+function ModelRail({ state, source }: { state: DashboardState; source?: string }) {
   const { usage, stats, statsStatus, errors } = state;
   const models = [...usage.models].sort((a, b) => b.steps - a.steps);
   const max = Math.max(1, ...models.map((m) => m.steps));
   return (
     <section className="panel models" aria-label="models">
       <h2 className="panel-title">
-        models <span className="dim">· aggregate</span>
+        aggregate <span className="dim">· stats only</span>
       </h2>
-      <p className="rail-note">aggregate stats · not linked to calls</p>
+      <p className="rail-note">not linked to calls</p>
       <div className="models-body">
         {models.length === 0 ? (
           <div className="rail-empty">
@@ -334,19 +404,17 @@ function ModelRail({ state }: { state: DashboardState }) {
         ) : (
           <ul className="model-list">
             {models.map((m) => {
-              const r = 3 + 8 * Math.sqrt(m.steps / max);
               return (
                 <li key={`${m.provider}/${m.model}/${m.variant}`} className="model">
-                  <svg className="model-jack" viewBox="0 0 24 24" width={24} height={24} aria-hidden="true">
-                    <circle className="jack-ring" cx={12} cy={12} r={r} />
-                    <circle className="jack-hole" cx={12} cy={12} r={2} />
-                  </svg>
                   <div className="model-main">
                     <div className="model-name">
                       <span className="dim">{m.provider}/</span>
                       {m.model}
                       <span className="variant">{m.variant}</span>
                     </div>
+                    <svg className="model-step-bar" width={160} height={4} role="img" aria-label={`${m.steps} steps`}>
+                      <rect width={(160 * m.steps) / max} height={4} />
+                    </svg>
                     <div className="model-nums">
                       {`${fmtNum(m.steps)} steps · in ${fmtNum(m.tokens.input)} · out ${fmtNum(m.tokens.output)} · rsn ${fmtNum(m.tokens.reasoning)} · cache ${fmtNum(m.tokens.cache.read + m.tokens.cache.write)} · $${m.cost.toFixed(2)}`}
                     </div>
@@ -359,6 +427,12 @@ function ModelRail({ state }: { state: DashboardState }) {
       </div>
       <p className="panel-foot dim">
         {stats ? `stats range ${fmtDay(stats.range.from)} → ${fmtDay(stats.range.to)}` : "stats range —"}
+        {source === undefined ? null : (
+          <>
+            <br />
+            <span data-aggregate-source="true">{source}</span>
+          </>
+        )}
         <br />
         {`tool failures ${errors.toolFailures ?? "—"}${stats ? ` of ${stats.tools.totals.calls} calls (stats range)` : ""}`}
         <br />
@@ -368,26 +442,24 @@ function ModelRail({ state }: { state: DashboardState }) {
   );
 }
 
+// Tiers (DESIGN "Ticker tape"): always-visible columns, `lo` columns that only show at >= 1440 px, and fields that
+// live only in the detail drawer (message, tokens, cost: they always read — in v1).
 const COLUMNS: { key: string; label: string; lo?: boolean }[] = [
   { key: "ts", label: "ts" },
   { key: "src", label: "src" },
   { key: "session", label: "session", lo: true },
-  { key: "message", label: "message", lo: true },
   { key: "suggest", label: "suggest" },
   { key: "conf", label: "conf" },
-  { key: "oracle", label: "oracle" },
+  { key: "oracle", label: "oracle", lo: true },
   { key: "decision", label: "decision" },
-  { key: "reason", label: "reason" },
+  { key: "reason", label: "reason", lo: true },
   { key: "ctx", label: "ctx agent" },
-  { key: "xagent", label: "exec agent" },
-  { key: "xmodel", label: "exec model" },
+  { key: "exec", label: "exec agent/model" },
   { key: "classifier", label: "classifier", lo: true },
-  { key: "fallback", label: "fallback" },
-  { key: "latency", label: "latency", lo: true },
-  { key: "tokens", label: "tokens", lo: true },
-  { key: "cost", label: "cost", lo: true },
+  { key: "fallback", label: "fallback", lo: true },
+  { key: "latency", label: "latency" },
   { key: "err", label: "err" },
-  { key: "prompt", label: "prompt", lo: true },
+  { key: "prompt", label: "prompt" },
 ];
 
 function Ticker({
@@ -398,6 +470,7 @@ function Ticker({
   filterBar,
   filterNote,
   notice,
+  rejected,
   onSelect,
 }: {
   state: DashboardState;
@@ -407,18 +480,24 @@ function Ticker({
   filterBar: ReactNode;
   filterNote: string | null;
   notice: string | null;
+  rejected?: number;
   onSelect: (id: string) => void;
 }) {
   const w = state.window;
   const ev = w.events;
   const ev_ev = w.evicted;
+  const m = state.errors.malformed;
   // The source column exists only when events carry source evidence; single-source views are unchanged.
   const columns = rows.some((e) => evidence(e).sourceId !== undefined)
     ? COLUMNS
     : COLUMNS.filter((c) => c.key !== "src");
   return (
-    <section id="ticker" className="panel ticker" aria-label="ticker tape" tabIndex={-1}>
-      <h2 className="panel-title">
+    <section className="panel ticker" aria-label="ticker tape">
+      <h2
+        className="panel-title ticker-title"
+        tabIndex={0}
+        aria-label="ticker summary and intake · scroll horizontally for all counts and keyboard hints"
+      >
         ticker tape{" "}
         <span className="dim">
           {`· newest ${ev.sent} of ${ev.retained} retained`}
@@ -426,6 +505,28 @@ function Ticker({
           {` · evicted observe ${ev_ev.observe} · route ${ev_ev.route} · permissions ${ev_ev.permissions}`}
           {filterNote ? ` · ${filterNote}` : ""}
           {rows.length >= RENDER_LIMIT ? ` · rendering newest ${RENDER_LIMIT}` : ""}
+        </span>
+        <span className="intake dim">
+          {" · "}
+          <span className="intake-full">
+            {`malformed (process lifetime) observe ${m.observe} · route ${m.route} · permissions ${m.permissions}`}
+            {` · permissions newest ${w.permissions.sent} of ${w.permissions.retained} retained`}
+            {rejected === undefined ? null : (
+              <>
+                {" · "}
+                <span
+                  className={rejected > 0 ? "warn" : undefined}
+                  data-rejected={rejected}
+                  title="Browser payloads that failed validation and were dropped since this page loaded"
+                >
+                  {`rejected payloads ${rejected}`}
+                </span>
+              </>
+            )}
+          </span>
+          <span className="intake-short">
+            {`intake: malformed ${m.observe + m.route + m.permissions}${rejected === undefined ? "" : ` · rejected ${rejected}`}`}
+          </span>
         </span>
         <span className="keys dim">/ search · f filters · j/k row · enter detail · 1-8 views · esc close</span>
       </h2>
@@ -435,7 +536,7 @@ function Ticker({
         </p>
       ) : null}
       {filterBar}
-      <div className="ticker-scroll">
+      <div className="ticker-scroll" id="ticker" tabIndex={0} role="region" aria-label="ticker event rows">
         <table>
           <thead>
             <tr>
@@ -470,51 +571,49 @@ function Ticker({
                 <td className="c-session lo" title={e.session}>
                   {fmtSession(e.session)}
                 </td>
-                <td className="c-message lo" title={e.message ?? ""}>
-                  {e.message ?? "—"}
-                </td>
                 <td className={`c-suggest${isRole(e.suggestion) ? ` r-${e.suggestion}` : ""}`}>
+                  {isRole(e.suggestion) ? <RoleShape role={e.suggestion} /> : null}
                   {e.suggestion ? <span className="role-chip">{e.suggestion}</span> : "—"}
                 </td>
                 <td className="c-conf num">{fmt2(e.confidence)}</td>
-                <td className="c-oracle num">{fmt2(e.needsOracle)}</td>
+                <td className="c-oracle lo num">{fmt2(e.needsOracle)}</td>
                 <td className={`c-decision ${e.decision ?? ""}`}>{e.decision ?? "—"}</td>
-                <td className="c-reason" title={e.reason ?? ""}>
+                <td className="c-reason lo" title={e.reason ?? ""}>
                   {e.reason ?? "—"}
                 </td>
-                <td className="c-ctx">{e.contextAgent ?? "—"}</td>
-                <td className="c-xagent">
-                  <Unavailable />
+                <td className="c-ctx">
+                  {e.contextAgent ? (
+                    <>
+                      <CtxRing />
+                      <span>{e.contextAgent}</span>
+                    </>
+                  ) : (
+                    "—"
+                  )}
                 </td>
-                <td className="c-xmodel">
+                <td className="c-exec">
                   <Unavailable />
                 </td>
                 <td className="c-classifier lo" title={e.classifierModel ?? ""}>
                   {e.classifierModel ?? "—"}
                 </td>
-                <td className="c-fallback" title="not detectable">
+                <td className="c-fallback lo" title="not detectable">
                   n/d
                 </td>
-                <td className="c-latency lo num">{e.latency === null ? "—" : `${e.latency}ms`}</td>
-                <td className="c-tokens lo">
-                  <Unavailable />
-                </td>
-                <td className="c-cost lo">
-                  <Unavailable />
-                </td>
+                <td className="c-latency num">{e.latency === null ? "—" : `${e.latency}ms`}</td>
                 <td className="c-err" title={e.errors.join(" | ")}>
                   {e.errors.length ? (
                     <>
-                      <span className="glyph err" aria-label="error">
-                        ▲
+                      <span className="glyph err" role="img" aria-label="error">
+                        <StateIcon kind="error" />
                       </span>
-                      {trunc(e.errors[0] ?? null, 14)}
+                      {e.errors[0]}
                     </>
                   ) : (
                     ""
                   )}
                 </td>
-                <td className="c-prompt lo" title={e.prompt ?? ""}>
+                <td className="c-prompt" title={e.prompt ?? ""}>
                   {e.prompt ?? "—"}
                 </td>
               </tr>
@@ -541,6 +640,8 @@ export function FlowView({
   replay,
   onReplayStart,
   waiting,
+  rejected,
+  aggregateSource,
   onSelect,
 }: {
   state: DashboardState;
@@ -548,6 +649,10 @@ export function FlowView({
   selected: string | null;
   arrived: ReadonlySet<string>;
   burst: number;
+  /** Whose stats the aggregate rail shows, in words. Omit to leave the rail unlabeled. */
+  aggregateSource?: string;
+  /** Browser payloads dropped by validation since page load; omit to hide the counter. */
+  rejected?: number;
   filterBar: ReactNode;
   filterNote: string | null;
   /** Announcement shown above the ticker filters (selected event evicted). */
@@ -581,7 +686,7 @@ export function FlowView({
           onReplayStart={onReplayStart}
           waiting={waiting}
         />
-        <ModelRail state={state} />
+        <ModelRail state={state} source={aggregateSource} />
       </main>
       <Ticker
         state={state}
@@ -591,6 +696,7 @@ export function FlowView({
         filterBar={filterBar}
         filterNote={filterNote}
         notice={notice}
+        rejected={rejected}
         onSelect={onSelect}
       />
     </>

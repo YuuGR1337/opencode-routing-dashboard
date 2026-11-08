@@ -1,5 +1,6 @@
 import type { DashboardState, FlowEvent, Source } from "../../src/core/aggregate";
 import { fmt2, fmtInt, fmtRange, fmtTs, SOURCES } from "./format";
+import { StateIcon } from "./parts";
 
 const isTimeout = (text: string) => /time-?out/i.test(text);
 
@@ -7,7 +8,7 @@ function failureSource(event: FlowEvent, text: string) {
   return event.observe?.error === text ? "observe" : "route";
 }
 
-export function ErrorsView({ state }: { state: DashboardState }) {
+export function ErrorsView({ state, rejected }: { state: DashboardState; rejected?: number }) {
   const { errors, stats, window: win } = state;
   const failing = [...state.events].filter((e) => e.errors.length > 0).reverse();
   const timeouts = failing.reduce((n, e) => n + e.errors.filter(isTimeout).length, 0);
@@ -57,7 +58,7 @@ export function ErrorsView({ state }: { state: DashboardState }) {
                     <td>{failureSource(e, text)}</td>
                     <td className="err">
                       <span className="glyph" aria-hidden="true">
-                        ▲
+                        <StateIcon kind="error" />
                       </span>
                       {text}
                     </td>
@@ -81,6 +82,23 @@ export function ErrorsView({ state }: { state: DashboardState }) {
         </dl>
         <p className="note dim">lines that could not be parsed, skipped and counted since this process started.</p>
       </section>
+
+      {rejected === undefined ? null : (
+        <section>
+          <h3>rejected payloads (this page)</h3>
+          <dl className="facts">
+            <div>
+              <dt>rejected payloads</dt>
+              <dd className={rejected > 0 ? "warn" : undefined} data-rejected={rejected}>
+                {fmtInt(rejected)}
+              </dd>
+            </div>
+          </dl>
+          <p className="note dim">
+            browser payloads that failed validation and were dropped since this page loaded. Not a count of log lines.
+          </p>
+        </section>
+      )}
 
       <section>
         <h3>tool failures</h3>

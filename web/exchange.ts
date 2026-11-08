@@ -1,5 +1,6 @@
 import { aggregate, type DashboardState, type FlowEvent } from "../src/core/aggregate";
 import type { ServerAnalytics } from "./analytics";
+import type { StateKind } from "./views/parts";
 
 // Structural UI types for the federation contract. The server's top-level state is the combined view.
 export type ExchangeStatus = "connecting" | "live" | "stale" | "error";
@@ -27,7 +28,12 @@ export const BASES: readonly ClientBasis[] = ["observed", "configured", "unknown
 
 export const COMBINED = "combined";
 export const EXCHANGE_STATUSES: readonly ExchangeStatus[] = ["connecting", "live", "stale", "error"];
-export const SOURCE_GLYPH: Record<ExchangeStatus, string> = { connecting: "○", live: "●", stale: "◇", error: "▲" };
+export const SOURCE_ICON: Record<ExchangeStatus, StateKind> = {
+  connecting: "connecting",
+  live: "live",
+  stale: "stale",
+  error: "error",
+};
 export const SOURCE_CLASS: Record<ExchangeStatus, string> = {
   connecting: "dim",
   live: "ok",

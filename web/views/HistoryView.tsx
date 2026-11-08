@@ -1,6 +1,7 @@
 import type { DashboardState } from "../../src/core/aggregate";
 import type { StatsRecord } from "../../src/core/schema";
 import { fmtInt, fmtRange } from "./format";
+import { StateIcon } from "./parts";
 
 type Snapshot = DashboardState["history"][number];
 
@@ -16,14 +17,14 @@ function SnapshotSource({ status }: { status: HistoryStatus | null }) {
       {status.status === "missing" ? (
         <div className="warn">
           <span className="glyph" aria-hidden="true">
-            ○
+            <StateIcon kind="missing" />
           </span>
           snapshot directory missing: <span className="path">{status.path}</span>
         </div>
       ) : status.status === "error" ? (
         <div className="err">
           <span className="glyph" aria-hidden="true">
-            ▲
+            <StateIcon kind="error" />
           </span>
           snapshot directory unreadable: <span className="path">{status.path}</span>
           {status.detail ? ` · ${status.detail}` : ""}

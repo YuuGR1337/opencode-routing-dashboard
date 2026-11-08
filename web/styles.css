@@ -1,18 +1,19 @@
-/* Switchboard shell. Tokens from docs/DESIGN.md. No inline styles (CSP); no gradients; flat, 1px hairlines.
+/* Switchboard shell, Lane Bay identity. Tokens from docs/DESIGN.md. --dim2 is for non-text only. No inline styles (CSP); no gradients; flat, 1px hairlines.
    Fonts: the font-face rules live in assets/fonts.css (linked from index.html) because the bundler inlines
    small font files as data: URIs, which the self-only CSP blocks. */
 :root {
-  --bg: #0e0f0c;
-  --panel: #171914;
-  --line: #2a2d25;
-  --ink: #e8e4d8;
-  --dim: #8c8a80;
-  --amber: #ffb000;
-  --teal: #3cc8b4;
-  --ok: #7bd88f;
-  --warn: #ffb000;
-  --err: #ff5a3c;
-  --ghost: rgb(232 228 216 / 35%);
+  --bg: #0b0d10;
+  --panel: #10131a;
+  --panel2: #171b24;
+  --line: #232831;
+  --ink: #e7eaef;
+  --dim: #8590a0;
+  --dim2: #5b6473;
+  --sel: #c8f169;
+  --warn: #f2b548;
+  --ok: #5fd9a0;
+  --err: #ff6b5b;
+  --ghost: rgb(231 234 239 / 45%);
   --row: 22px;
   --mono: "IBM Plex Mono", ui-monospace, monospace;
   --label: "Instrument Sans", system-ui, sans-serif;
@@ -56,29 +57,53 @@ button {
   width: 1.2em;
   text-align: center;
 }
+/* State icons: shape carries the state, colour (inherited) only reinforces the word beside it. */
+.state-icon {
+  vertical-align: -1px;
+}
+.state-icon * {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+}
+.state-icon .solid {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* Width tiers: defaults here are the >= 1440 px forms; the max-width: 1280px blocks switch them. */
+.focus-compact {
+  display: none;
+}
+.intake-short {
+  display: none;
+}
 
 /* ---- shell grid ---- */
 .app {
   display: grid;
-  /* Rows above the stage: header + source health, plus the DEMO band and the exchange source bar when present. */
-  --top: 2;
-  --tick: 244px;
-  grid-template-rows: repeat(var(--top), auto) minmax(0, 1fr) var(--tick);
+  /* Rows above the stage: header, views nav and scope strip, plus the DEMO band and the exchange source bar when present. */
+  --top: 3;
+  --tick: 248px;
+  grid-template-rows: repeat(var(--top), auto) minmax(0, 1fr) calc(var(--tick) + var(--alert-height, 0px));
   height: 100vh;
   min-width: 960px;
 }
 .app.has-demo,
 .app.has-exchange {
-  --top: 3;
-}
-.app.has-demo.has-exchange {
   --top: 4;
 }
+.app.has-demo.has-exchange {
+  --top: 5;
+}
+.app:has(.ticker-alerts) {
+  --alert-height: 22px;
+}
 .demo-band {
-  height: 16px;
-  background: var(--amber);
-  color: #0e0f0c;
-  font: 700 11px / 16px var(--label);
+  height: 18px;
+  background: var(--warn);
+  color: var(--bg);
+  font: 700 11px / 18px var(--label);
   letter-spacing: 0.12em;
   text-align: center;
   text-transform: uppercase;
@@ -86,13 +111,14 @@ button {
 
 /* ---- header ---- */
 .head {
+  height: 56px;
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 6px 12px;
   border-bottom: 1px solid var(--line);
   background: var(--panel);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 .brand {
   display: flex;
@@ -100,10 +126,8 @@ button {
   min-width: 118px;
 }
 .brand-name {
-  font: 700 13px / 1.1 var(--label);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--amber);
+  font: 700 15px / 1.1 var(--label);
+  color: var(--ink);
 }
 .brand-sub {
   font: 400 11px / 1.3 var(--label);
@@ -124,7 +148,7 @@ button {
   border-left: 1px solid var(--line);
 }
 .readout-value {
-  font: 400 20px / 1.1 var(--mono);
+  font: 700 15px / 1.2 var(--mono);
   color: var(--ink);
 }
 .readout-label {
@@ -151,52 +175,59 @@ button {
 .link {
   font: 400 11px / 1.2 var(--mono);
 }
-.drawers {
+/* ---- views nav: its own text-tab row, digits 1-8, never wraps ---- */
+.views-nav {
   display: flex;
-  gap: 4px;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 2px;
+  height: 28px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  overflow: hidden;
 }
-.drawers button {
+.views-nav button {
+  display: flex;
+  align-items: center;
+  flex: none;
+  padding: 0 10px;
   background: transparent;
-  border: 1px solid var(--line);
-  padding: 0 8px;
-  font: 700 11px / 18px var(--label);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  font: 400 12.5px var(--label);
+  color: var(--dim);
   cursor: pointer;
+  white-space: nowrap;
 }
-.drawers button:hover,
-.drawers button[aria-expanded="true"] {
-  border-color: var(--amber);
+.views-nav button:hover {
+  color: var(--ink);
 }
-.drawers button[aria-expanded="true"] {
-  background: var(--bg);
-  color: var(--amber);
+.views-nav button[aria-expanded="true"] {
+  border-bottom-color: var(--sel);
+  background: var(--panel2);
+  color: var(--ink);
+  font-weight: 700;
 }
-.drawers button sup {
+.views-nav button sup {
   margin-left: 4px;
   font: 400 11px var(--mono);
-  color: var(--amber);
+  color: var(--dim);
 }
 
-/* ---- source health ---- */
-.sources {
+/* ---- scope strip: one line, viewed source + file lamps ---- */
+.scope-strip {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0 16px;
   align-items: center;
-  min-height: 24px;
+  height: 26px;
   padding: 0 12px;
   border-bottom: 1px solid var(--line);
   font-size: 11px;
   white-space: nowrap;
   overflow: hidden;
-}
-.sources .spacer {
-  margin-left: auto;
-}
-.sources .drawers {
-  align-items: center;
 }
 
 /* ---- stage ---- */
@@ -217,6 +248,7 @@ button {
   border-left: 1px solid var(--line);
 }
 .panel-title {
+  flex-shrink: 0;
   margin: 0;
   height: 24px;
   padding: 0 12px;
@@ -233,6 +265,7 @@ button {
   text-transform: none;
 }
 .panel-foot {
+  flex-shrink: 0;
   margin: 0;
   margin-top: auto;
   padding: 4px 12px;
@@ -248,6 +281,8 @@ button {
 
 /* calls rail */
 .call-list {
+  min-height: 0;
+  overflow: auto;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -263,12 +298,21 @@ button {
   min-width: 0;
 }
 .call.sel {
-  border-left-color: var(--amber);
-  background: var(--panel);
+  border-left-color: var(--sel);
+  background: var(--panel2);
 }
 .call-ts {
   font-size: 11px;
   color: var(--dim);
+}
+.call-role {
+  margin-left: 8px;
+  color: var(--c, var(--ink));
+  font: 700 11px var(--label);
+}
+.call-role .shape {
+  margin-right: 4px;
+  vertical-align: -1px;
 }
 .call-text {
   font-size: 12px;
@@ -278,7 +322,7 @@ button {
 }
 .burst {
   margin-left: 8px;
-  color: var(--amber);
+  color: var(--warn);
   font: 400 11px var(--mono);
   letter-spacing: 0;
   text-transform: none;
@@ -292,15 +336,17 @@ button {
   position: relative;
   display: flex;
   align-items: flex-start;
-  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
 .bay-main {
   flex: none;
-  width: 560px;
+  width: 536px;
 }
 .bay-svg {
   display: block;
-  width: 560px;
+  width: 536px;
 }
 .focus {
   flex: 1;
@@ -314,11 +360,11 @@ button {
   font: 700 11px var(--label);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--amber);
+  color: var(--ink);
 }
 .focus-prompt {
   margin: 2px 0 8px;
-  font-size: 12px;
+  font-size: 13px;
   overflow-wrap: anywhere;
 }
 .focus-row {
@@ -328,7 +374,7 @@ button {
 }
 .focus-row dt {
   flex: none;
-  width: 84px;
+  width: 116px;
   color: var(--dim);
 }
 .focus-row dd {
@@ -351,20 +397,34 @@ button {
   fill: var(--dim);
 }
 .wire-g.focus .origin {
-  fill: var(--amber);
+  fill: var(--sel);
 }
 .token {
-  fill: var(--amber);
+  fill: var(--sel);
 }
 .jack-ring {
   fill: var(--bg);
-  stroke: var(--c, var(--dim));
+  stroke: var(--dim2);
+  stroke-width: 1.5;
+}
+/* Role shapes: solid in text rows, hollow sockets in the bay. */
+.shape {
+  flex: none;
+  overflow: visible;
+}
+.shape > * {
+  fill: var(--c, var(--ink));
+  stroke: none;
+}
+.jack .shape > * {
+  fill: var(--bg);
+  stroke: var(--c, var(--dim2));
   stroke-width: 1.5;
 }
 .jack-hole {
   fill: var(--line);
 }
-.jack.lit .jack-ring {
+.jack.lit .shape > * {
   fill: color-mix(in srgb, var(--c) 30%, var(--bg));
 }
 .jack.lit .jack-hole {
@@ -372,12 +432,29 @@ button {
 }
 .ctx-jack {
   fill: none;
-  stroke: var(--dim);
+  stroke: var(--dim2);
   stroke-width: 1;
 }
 .ctx-jack.on {
   stroke: var(--ink);
   stroke-width: 2;
+}
+.ctx-dot {
+  fill: var(--ink);
+}
+.ctx-ring {
+  flex: none;
+  margin-right: 4px;
+  vertical-align: -2px;
+}
+.ctx-ring circle {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.25;
+}
+.c-suggest .shape {
+  margin-right: 4px;
+  vertical-align: -2px;
 }
 .tick {
   fill: var(--ok);
@@ -388,6 +465,13 @@ button {
   stroke: var(--dim);
   stroke-width: 1;
   stroke-dasharray: 1 3;
+}
+.differs-label {
+  fill: var(--dim);
+  font: 400 11px var(--label);
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 3px;
 }
 .jack-label {
   fill: var(--c, var(--ink));
@@ -401,14 +485,14 @@ button {
 }
 .pulse {
   fill: none;
-  stroke: var(--c, var(--amber));
+  stroke: var(--c, var(--sel));
   stroke-width: 2;
   transform-box: fill-box;
   transform-origin: center;
   animation: pulse 500ms ease-out 1 both;
 }
 .r-orchestrator {
-  --c: #ffb000;
+  --c: #e8c26a;
 }
 .r-oracle {
   --c: #c792ea;
@@ -436,7 +520,7 @@ button {
   font: 700 13px var(--label);
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--amber);
+  color: var(--ink);
 }
 .silent-sub {
   margin: 2px 0 6px;
@@ -462,15 +546,14 @@ button {
 /* model rail */
 .models {
   position: relative;
+  margin: 4px;
+  border: 1px dashed var(--dim2);
+}
+.panel + .panel.models {
+  border-left: 1px dashed var(--dim2);
 }
 .models-body::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 17px;
-  border-left: 1px dotted var(--dim);
-  opacity: 0.5;
+  content: none;
 }
 .models-body {
   position: relative;
@@ -487,24 +570,32 @@ button {
   display: flex;
   gap: 8px;
   align-items: center;
-  padding: 6px 12px 6px 6px;
+  padding: 6px 12px;
   border-bottom: 1px solid var(--line);
 }
 .model-jack {
   flex: none;
 }
 .model-jack .jack-ring {
-  stroke: var(--dim);
+  stroke: var(--dim2);
 }
 .model-main {
   min-width: 0;
+}
+.model-step-bar {
+  display: block;
+  max-width: 100%;
+  margin: 4px 0;
+  fill: var(--dim);
 }
 .rail-note {
   margin: 0;
   padding: 3px 12px 3px 36px;
   border-bottom: 1px solid var(--line);
-  font-size: 11px;
-  color: var(--amber);
+  font: 700 11px var(--label);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--warn);
 }
 .model-name {
   font-size: 12px;
@@ -576,15 +667,41 @@ button {
   cursor: pointer;
 }
 .ticker-alerts button:hover {
-  background: var(--bg);
+  background: var(--panel2);
 }
-.ticker .panel-title .keys {
-  float: right;
+.ticker-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.ticker-title > span {
+  flex: none;
+}
+.ticker-title .keys {
+  margin-left: auto;
+}
+.ticker-title:focus-visible {
+  outline-offset: -2px;
 }
 .ticker-scroll {
   flex: 1;
   min-height: 0;
   overflow: auto;
+}
+/* Preserve evidence cells at their natural width. Long records scroll the tape horizontally rather than
+   ellipsizing non-prompt evidence; only the prompt may shorten. */
+.ticker table {
+  table-layout: auto;
+}
+.ticker td:not(.c-prompt) {
+  overflow: visible;
+  text-overflow: clip;
+}
+.ticker .c-prompt {
+  max-width: 220px;
 }
 table {
   width: 100%;
@@ -622,10 +739,15 @@ tbody td {
   background: var(--panel);
 }
 .row.sel td {
-  background: var(--panel);
+  background: var(--panel2);
 }
 .row.sel td:first-child {
-  box-shadow: inset 2px 0 0 var(--amber);
+  border-left: 2px solid var(--sel);
+}
+/* The ticker container keeps no outline, so the active row carries the focus ring while it holds focus. */
+.ticker-scroll:focus .row.sel td:first-child {
+  outline: 2px solid var(--sel);
+  outline-offset: -2px;
 }
 .num {
   text-align: right;
@@ -658,11 +780,8 @@ td.c-err {
 .c-session {
   width: 64px;
 }
-.c-message {
-  width: 72px;
-}
 .c-suggest {
-  width: 92px;
+  width: 108px;
 }
 .c-conf,
 .c-oracle {
@@ -675,11 +794,10 @@ td.c-err {
   width: 128px;
 }
 .c-ctx {
-  width: 92px;
+  width: 108px;
 }
-.c-xagent,
-.c-xmodel {
-  width: 76px;
+.c-exec {
+  width: 110px;
 }
 .c-classifier {
   width: 100px;
@@ -692,10 +810,6 @@ td.c-err {
 }
 .c-latency {
   width: 62px;
-}
-.c-tokens,
-.c-cost {
-  width: 56px;
 }
 .c-err {
   width: 118px;
@@ -711,11 +825,11 @@ td.c-err {
   display: flex;
   flex-direction: column;
   background: var(--panel);
-  border-left: 1px solid var(--amber);
+  border-left: 1px solid var(--dim2);
   z-index: 5;
 }
 .has-demo .detail {
-  top: 16px;
+  top: 18px;
 }
 .detail-head {
   display: flex;
@@ -746,7 +860,7 @@ td.c-err {
   font: 700 11px var(--label);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--amber);
+  color: var(--ink);
 }
 .detail-body pre {
   margin: 0;
@@ -785,13 +899,34 @@ td.c-err {
     display: none;
   }
   .stage {
-    grid-template-columns: 210px minmax(0, 1fr) 240px;
+    grid-template-columns: 256px minmax(0, 1fr) 232px;
   }
   .focus {
     display: none;
   }
+  .focus-compact {
+    display: block;
+  }
+  .intake-full {
+    display: none;
+  }
+  .intake-short {
+    display: inline;
+  }
+  .filters {
+    flex-wrap: wrap;
+    align-content: center;
+    gap: 3px 4px;
+    height: 52px;
+  }
+  .call {
+    height: 36px;
+  }
+  .c-err {
+    width: 110px;
+  }
   .app {
-    --tick: 192px;
+    --tick: 208px;
   }
   .transport .rts {
     display: none;
@@ -802,9 +937,6 @@ td.c-err {
   .readout {
     padding: 0 8px;
     min-width: 96px;
-  }
-  .c-err {
-    width: auto;
   }
   .detail {
     width: 400px;
@@ -856,7 +988,7 @@ td.c-err {
   }
   .row.arrive td,
   .call.arrive {
-    background: color-mix(in srgb, var(--amber) 18%, var(--bg));
+    background: color-mix(in srgb, var(--sel) 18%, var(--bg));
   }
   .token {
     opacity: 1;
@@ -865,15 +997,16 @@ td.c-err {
 
 /* ---- focus: visible for keyboard use everywhere ---- */
 :focus-visible {
-  outline: 1px solid var(--amber);
+  outline: 2px solid var(--sel);
   outline-offset: 1px;
 }
-.ticker:focus {
+.ticker-scroll:focus {
   outline: none;
 }
 
 /* ---- ticker filter bar ---- */
 .filters {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -916,18 +1049,16 @@ td.c-err {
 }
 .filters .check input {
   margin: 0;
-  accent-color: var(--amber);
+  accent-color: var(--sel);
 }
+/* The row counter keeps a fixed slot and is never truncated; selects and search shrink first. */
 .filters .scope {
-  flex: 0 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex: none;
   margin-left: auto;
   color: var(--dim);
 }
 .filters .scope.on {
-  color: var(--amber);
+  color: var(--warn);
 }
 .filters .note {
   font-size: 11px;
@@ -944,11 +1075,11 @@ td.c-err {
   display: flex;
   flex-direction: column;
   background: var(--panel);
-  border-left: 1px solid var(--amber);
+  border-left: 1px solid var(--dim2);
   z-index: 6;
 }
 .has-demo .drawer {
-  top: 16px;
+  top: 18px;
 }
 .drawer-head {
   display: flex;
@@ -974,8 +1105,8 @@ td.c-err {
   cursor: pointer;
 }
 .drawer-head .tabs button[aria-pressed="true"] {
-  border-color: var(--amber);
-  color: var(--amber);
+  border-color: var(--sel);
+  color: var(--ink);
 }
 .drawer-head .close {
   background: transparent;
@@ -1002,7 +1133,7 @@ td.c-err {
   font: 700 11px var(--label);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--amber);
+  color: var(--ink);
 }
 .view h3:first-child {
   margin-top: 0;
@@ -1078,7 +1209,7 @@ td.c-err {
 }
 .view tr.total td {
   border-top: 1px solid var(--dim);
-  color: var(--amber);
+  color: var(--ink);
 }
 .share-bar {
   fill: var(--dim);
@@ -1095,13 +1226,13 @@ td.c-err {
 
 /* agreement matrix and histogram (custom SVG) */
 .matrix .cell {
-  fill: var(--amber);
+  fill: var(--warn);
   stroke: var(--line);
   stroke-width: 1;
 }
 .matrix .cell.diag {
-  fill: var(--teal);
-  stroke: var(--teal);
+  fill: var(--ok);
+  stroke: var(--ok);
   stroke-opacity: 0.6;
 }
 .matrix .cell-n,
@@ -1138,7 +1269,7 @@ td.c-err {
   fill: var(--line);
 }
 .hist .bar.hit {
-  fill: var(--amber);
+  fill: var(--sel);
 }
 .baseline {
   stroke: var(--line);
@@ -1170,7 +1301,7 @@ td.c-err {
   fill: var(--dim);
 }
 .multiple .bar.hit {
-  fill: var(--amber);
+  fill: var(--sel);
 }
 
 /* session timeline inside the event detail */
@@ -1206,8 +1337,8 @@ td.c-err {
   background: var(--bg);
 }
 .timeline li.cur > div {
-  background: var(--bg);
-  box-shadow: inset 2px 0 0 var(--amber);
+  background: var(--panel2);
+  border-left: 2px solid var(--sel);
 }
 .timeline .t-ts {
   color: var(--dim);
@@ -1241,7 +1372,7 @@ td.c-err {
   overflow-wrap: anywhere;
 }
 .view .empty code {
-  color: var(--amber);
+  color: var(--ink);
 }
 .view .empty > div + div {
   margin-top: 3px;
@@ -1256,7 +1387,7 @@ td.c-err {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 28px;
+  min-height: 34px;
   padding: 0 12px;
   border-bottom: 1px solid var(--line);
   background: var(--panel);
@@ -1279,11 +1410,11 @@ td.c-err {
   align-items: center;
   gap: 6px;
   height: 22px;
-  margin-left: -1px;
+  margin-left: 4px;
   padding: 0 10px;
   background: transparent;
   border: 1px solid var(--line);
-  border-radius: 0;
+  border-radius: 11px;
   font: 400 11px var(--mono);
   color: var(--ink);
   cursor: pointer;
@@ -1303,11 +1434,8 @@ td.c-err {
 .source[aria-checked="true"] {
   position: relative;
   z-index: 1;
-  background: var(--bg);
-  border-color: var(--amber);
-}
-.source[aria-checked="true"] b {
-  color: var(--amber);
+  background: var(--panel2);
+  border-color: var(--sel);
 }
 .source .client {
   padding: 0 4px;
@@ -1327,11 +1455,10 @@ td.c-err {
 }
 .source[data-status="connecting"] .glyph,
 .source[data-status="connecting"] .status {
-  color: var(--dim);
+  color: var(--warn);
 }
 .viewing {
-  margin-left: auto;
-  color: var(--amber);
+  color: var(--ink);
 }
 
 /* sparse patch bay: a real per-role tally under the jacks, never invented calls */
@@ -1360,8 +1487,30 @@ td.c-err {
 /* replay transport */
 .bay .panel-foot {
   margin-top: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.bay .panel-foot.bay-legend {
+  display: flex;
+  flex-direction: column;
+  white-space: normal;
+}
+/* Compact call in focus: two lines in the bay foot at <= 1280 px, where the full readout is hidden. */
+.focus-compact {
+  padding: 4px 12px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--line);
+  background: var(--panel2);
+  font-size: 11px;
+  overflow-x: auto;
+}
+.focus-line {
+  display: block;
+  white-space: nowrap;
+  min-width: max-content;
 }
 .replay-slot {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1376,7 +1525,7 @@ td.c-err {
   align-items: stretch;
   gap: 3px;
   background: var(--panel);
-  border-top-color: var(--amber);
+  border-top-color: var(--sel);
 }
 .transport {
   display: flex;
@@ -1401,8 +1550,8 @@ td.c-err {
   cursor: default;
 }
 .replay-slot button[aria-pressed="true"] {
-  border-color: var(--amber);
-  color: var(--amber);
+  border-color: var(--sel);
+  color: var(--ink);
 }
 .replay-slot .play {
   min-width: 82px;
@@ -1416,7 +1565,7 @@ td.c-err {
 }
 .transport .pos {
   margin-left: 4px;
-  color: var(--amber);
+  color: var(--ink);
   white-space: nowrap;
 }
 .transport .stop {
@@ -1433,7 +1582,7 @@ td.c-err {
   padding: 2px 12px;
   background: var(--panel);
   border-bottom: 1px solid var(--line);
-  color: var(--amber);
+  color: var(--warn);
   font-size: 11px;
 }
 .filters > * {
@@ -1444,17 +1593,18 @@ td.c-err {
   min-width: 56px;
 }
 .filters .orphan {
-  color: var(--amber);
+  color: var(--warn);
 }
 .c-src {
   width: 64px;
 }
 .call-src {
-  color: var(--amber);
+  color: var(--ink);
 }
 
 @media (max-width: 1280px) {
   .bar-title,
+  .last-seen,
   .source .client,
   .source .src-detail,
   #flt-client {
@@ -1525,11 +1675,11 @@ td.c-err {
   stroke: var(--line);
 }
 .quota-bar.estimate .fill {
-  fill: var(--teal);
+  fill: var(--ok);
 }
 .quota-bar.partial .fill {
   fill: none;
-  stroke: var(--amber);
+  stroke: var(--warn);
 }
 .evidence {
   margin: 0 0 6px;
@@ -1554,8 +1704,8 @@ td.c-err {
 .dl {
   display: inline-block;
   padding: 3px 10px;
-  border: 1px solid var(--amber);
-  color: var(--amber);
+  border: 1px solid var(--sel);
+  color: var(--ink);
   font: 700 11px var(--label);
   letter-spacing: 0.08em;
   text-decoration: none;
@@ -1577,5 +1727,10 @@ a.dl:hover {
 @media (max-width: 1280px) {
   .drawer .tabs button {
     padding: 0 6px;
+  }
+  /* This tier must follow the base filter rule: two complete 26px rows, never flex-compressed. */
+  .filters {
+    height: 52px;
+    min-height: 52px;
   }
 }

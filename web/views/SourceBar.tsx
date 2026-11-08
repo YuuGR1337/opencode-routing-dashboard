@@ -1,6 +1,7 @@
 import type { KeyboardEvent } from "react";
-import { COMBINED, type ExchangeSource, SOURCE_GLYPH, sourceClientText } from "../exchange";
+import { COMBINED, type ExchangeSource, SOURCE_ICON, sourceClientText } from "../exchange";
 import { fmtClock, trunc } from "./format";
+import { StateIcon } from "./parts";
 
 /**
  * Source selector and health. One radio per configured source, plus the server's combined view.
@@ -9,13 +10,10 @@ import { fmtClock, trunc } from "./format";
 export function SourceBar({
   sources,
   selected,
-  sentEvents,
   onSelect,
 }: {
   sources: ExchangeSource[];
   selected: string;
-  /** Events sent in the selected view, for the trailing readout. */
-  sentEvents: number;
   onSelect: (id: string) => void;
 }) {
   const ids = [COMBINED, ...sources.map((s) => s.id)];
@@ -67,7 +65,7 @@ export function SourceBar({
             onKeyDown={keys(s.id)}
           >
             <span className="glyph" aria-hidden="true">
-              {SOURCE_GLYPH[s.status]}
+              <StateIcon kind={SOURCE_ICON[s.status]} />
             </span>
             <b>{s.label}</b>
             <span className="status">{s.status}</span>
@@ -76,14 +74,11 @@ export function SourceBar({
                 {sourceClientText(s)}
               </span>
             ) : null}
-            {s.lastSeenAt ? <span className="dim">{`last seen ${fmtClock(s.lastSeenAt)}`}</span> : null}
+            {s.lastSeenAt ? <span className="last-seen dim">{`last seen ${fmtClock(s.lastSeenAt)}`}</span> : null}
             {s.detail ? <span className="dim src-detail">{trunc(s.detail, 28)}</span> : null}
           </button>
         ))}
       </div>
-      <span className="viewing" role="status">
-        {`viewing ${selected} · ${sentEvents} sent`}
-      </span>
     </div>
   );
 }

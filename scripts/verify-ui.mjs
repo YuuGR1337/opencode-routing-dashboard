@@ -216,7 +216,7 @@ async function exchangeChecks({ browser, origin, initial, outDir, check, problem
     );
     ok(
       "stale view states it shows last retained state",
-      /orca stale.*showing last retained state/.test(await text(".sources")),
+      /orca stale.*showing last retained state/.test(await text(".scope-strip")),
     );
     await shot("source-stale");
     await page.click('[data-source="combined"]');
@@ -319,13 +319,13 @@ async function exchangeChecks({ browser, origin, initial, outDir, check, problem
     );
 
     // Rejected payloads
-    const before = Number(await page.locator("[data-rejected]").getAttribute("data-rejected"));
+    const before = Number(await page.locator(".intake-full [data-rejected]").getAttribute("data-rejected"));
     await pushText("{not json");
     await pushText(JSON.stringify({ state: { events: 1 }, seq: 99, demo: true }));
     await pushText(JSON.stringify({ state: combined(all), seq: 1, demo: true }));
     ok(
       "rejected payload counter counts bad payloads, not stale ones",
-      Number(await page.locator("[data-rejected]").getAttribute("data-rejected")) === before + 2,
+      Number(await page.locator(".intake-full [data-rejected]").getAttribute("data-rejected")) === before + 2,
       `before=${before}`,
     );
     await shot("rejected");
@@ -436,10 +436,598 @@ async function exchangeChecks({ browser, origin, initial, outDir, check, problem
       ]),
     );
     await page.waitForSelector('svg[data-sparse="false"]');
-    ok("full rail keeps the 400 px bay", Number(await page.locator(".bay-svg").getAttribute("height")) === 400);
+    // Lane Bay keeps ten rows aligned: 40 px wide, 36 px narrow (DESIGN #33 approved responsive contract).
+    const fullBayHeight = viewport.width <= 1280 ? 360 : 400;
+    ok(
+      `full rail keeps the ${fullBayHeight} px bay`,
+      Number(await page.locator(".bay-svg").getAttribute("height")) === fullBayHeight,
+    );
     await shot("full-bay");
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     ok("no horizontal page overflow", !overflow);
+    await context.close();
+  }
+}
+
+// ---- #33 Lane Bay identity checks ----------------------------------------------------------------------------
+// Controlled-source synthetic cases that exercise the accepted DESIGN #39 contract: compact focus at both sizes,
+// actual reduced-motion arrival suppression, visible keyboard focus paths, detail access, non-clipped 1024 rows,
+// aggregate unlinked scope, and the rejected-payload / compact intake summary decisions from the scope approval.
+async function laneBayChecks({ browser, origin, initial, outDir, check, problems }) {
+  const sizes = [
+    { width: 1440, height: 900 },
+    { width: 1024, height: 768 },
+  ];
+  const { seq: _s, demo: _d, exchange: _e, analytics: _a, ...base } = initial;
+  const template = initial.events[0];
+  const baseObserve = initial.events.find((e) => e.observe)?.observe ?? null;
+  const pair = (s) => {
+    try {
+      const p = JSON.parse(s);
+      return Array.isArray(p) ? p[1] : s;
+    } catch {
+      return s;
+    }
+  };
+  const tag = (event, sourceId, extra = {}) => ({
+    ...event,
+    sourceId,
+    session: JSON.stringify([sourceId, pair(event.session)]),
+    ...extra,
+  });
+  // Controlled combined state mimics the server: combined never sums per-source stats.
+  const noStats = { status: "unavailable", detail: "combined view does not sum source stats" };
+  const sourceNoStats = { status: "unavailable", detail: "controlled source has no stats" };
+  const stateOf = (events, stats = base.stats, statsStatus = base.statsStatus) => ({
+    ...base,
+    events,
+    stats,
+    statsStatus,
+    ...(stats === null
+      ? {
+          usage: { models: [], providers: [], variants: [], presets: "not available", totals: null },
+          errors: { ...base.errors, toolFailures: null },
+          readouts: { ...base.readouts, tokensToday: null },
+        }
+      : {}),
+    window: { ...base.window, events: { retained: events.length, sent: events.length, omitted: 0 } },
+  });
+  const t0 = Date.parse("2026-11-04T02:13:01.000Z");
+  const synthetic = (n, i) => ({
+    ...template,
+    id: `m33-replay-${n}`,
+    ts: new Date(t0 + i * 400).toISOString(),
+    prompt: `lane bay step ${n}`,
+    message: `msg_m33_${n}`,
+    suggestion: ["fixer", "explorer", "fixer", "oracle", "fixer"][i % 5],
+    contextAgent: ["fixer", "orchestrator", "fixer", "oracle", "designer"][i % 5],
+    errors: [],
+    observe: {
+      ...baseObserve,
+      preset: ["fast", "fast", "slim", "slim", "fast"][i % 5],
+    },
+  });
+  const original = initial.events.map((e) => ({ ...e, session: pair(e.session) }));
+  const by = (name) => original.filter((e) => e.session === name);
+  const pcEvents = [
+    ...by("ses_A1").map((e) => tag(e, "pc", { client: "TUI" })),
+    ...by("ses_B2").map((e) => tag(e, "pc", { client: "TUI" })),
+    ...[1, 2, 3, 4, 5].map((n, i) => tag({ ...synthetic(n, i), session: "ses_replay" }, "pc", { client: "TUI" })),
+  ];
+  const orcaEvents = by("ses_C3").map((e) => tag(e, "orca", { client: "Orca", directory: "/work/orca-demo" }));
+  const localEvents = by("ses_D4").map((e) => tag(e, "local"));
+  const sources = (local = stateOf(localEvents, null, sourceNoStats), error = false) => [
+    {
+      id: "pc",
+      label: "PC",
+      client: "TUI",
+      status: "live",
+      lastSeenAt: "2026-11-04T02:13:05.000Z",
+      state: stateOf(pcEvents),
+    },
+    {
+      id: "orca",
+      label: "Orca",
+      client: "Orca",
+      status: "stale",
+      lastSeenAt: "2026-11-04T02:09:41.000Z",
+      detail: "idle timeout",
+      state: stateOf(orcaEvents, null, sourceNoStats),
+    },
+    {
+      id: "local",
+      label: "Local",
+      status: error ? "error" : "connecting",
+      detail: error ? "refused" : undefined,
+      state: local,
+    },
+  ];
+  const byTime = (events) => [...events].sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts));
+  const combined = (events, srcs = sources()) => ({
+    ...stateOf(byTime(events), null, noStats),
+    exchange: { sources: srcs },
+  });
+  const all = [...pcEvents, ...orcaEvents, ...localEvents];
+
+  for (const viewport of sizes) {
+    const tagName = `${viewport.width}x${viewport.height}`;
+    const ok = (name, value, info = "") => check(`[33-${tagName}] ${name}`, value, info);
+    const context = await browser.newContext({ viewport });
+    const page = await context.newPage();
+    page.setDefaultTimeout(4000);
+    page.on("console", (m) => {
+      if (m.type() === "error") problems.push(`lane-bay console: ${m.text()}`);
+    });
+    page.on("pageerror", (e) => problems.push(`lane-bay pageerror: ${e.message}`));
+    let seq = 1;
+    await page.addInitScript(() => {
+      window.__es = [];
+      window.EventSource = class {
+        constructor(url) {
+          this.url = url;
+          this.l = {};
+          window.__es.push(this);
+          setTimeout(() => this.onopen?.({}), 0);
+        }
+        addEventListener(type, fn) {
+          (this.l[type] ??= []).push(fn);
+        }
+        close() {}
+      };
+      window.__push = (kind, data) => {
+        for (const es of window.__es) for (const fn of es.l[kind] || []) fn({ data });
+      };
+    });
+    await page.route("**/api/state", (route) =>
+      route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({ ...combined(all), seq: 1, demo: true }),
+      }),
+    );
+    const push = (state, kind = "delta", s = ++seq) =>
+      page.evaluate(([k, text]) => window.__push(k, text), [kind, JSON.stringify({ state, seq: s, demo: true })]);
+    const pushText = (text, kind = "delta") => page.evaluate(([k, t]) => window.__push(k, t), [kind, text]);
+    const shot = (name) => page.screenshot({ path: join(outDir, `m33-${name}-${tagName}.png`) });
+    const text = (selector) => page.locator(selector).first().innerText();
+    const style = (selector, prop) =>
+      page
+        .locator(selector)
+        .first()
+        .evaluate((el, p) => getComputedStyle(el)[p], prop);
+    const visible = (selector) =>
+      page
+        .locator(selector)
+        .first()
+        .evaluate((el) => el.offsetParent !== null);
+    const active = () =>
+      page.evaluate(
+        () =>
+          document.activeElement?.id ||
+          document.activeElement?.getAttribute("aria-label") ||
+          document.activeElement?.getAttribute("data-source") ||
+          document.activeElement?.tagName,
+      );
+
+    await page.goto(origin);
+    await page.waitForSelector('[data-source="combined"]');
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForSelector('tr[data-row="event"]');
+
+    const combinedRail = await text(".models");
+    ok(
+      "combined has no stats-derived model bars or totals",
+      (await page.locator(".models .model-step-bar").count()) === 0 &&
+        /total\s+—/.test(combinedRail) &&
+        /tool failures\s+—/.test(combinedRail),
+      combinedRail,
+    );
+    await page.click('[data-source="pc"]');
+    await page.waitForSelector(".models .model-step-bar");
+    ok(
+      "PC shows its own aggregate bars and range",
+      (await page.locator(".models .model-step-bar").count()) > 0 && /stats range\s+\d{4}/.test(await text(".models")),
+    );
+    await page.click('[data-source="combined"]');
+    await page.waitForFunction(() => document.querySelectorAll(".models .model-step-bar").length === 0);
+
+    // Populated shell with DEMO visible.
+    ok("DEMO band visible", /DEMO/.test(await text(".demo-band")));
+    await shot("populated");
+
+    // DESIGN #39 measured layout expectations (fail until the UI is updated and re-measured).
+    const demoHeight = await page.evaluate(() => document.querySelector(".demo-band")?.getBoundingClientRect().height);
+    ok("DEMO band height 18px", demoHeight === 18, `height=${demoHeight}`);
+    ok("readout value is 15px", (await style(".readout-value", "fontSize")) === "15px");
+    ok(
+      "wordmark is 15px bold",
+      (await style(".brand-name", "fontSize")) === "15px" && /700|bold/.test(await style(".brand-name", "fontWeight")),
+    );
+
+    // Stage column widths from DESIGN #82: measure the shell grid tracks, not inner panels.
+    const stageTracks = await page
+      .locator(".stage")
+      .first()
+      .evaluate((el) =>
+        window
+          .getComputedStyle(el)
+          .gridTemplateColumns.split(" ")
+          .map((s) => Number.parseFloat(s)),
+      );
+    const [callsTrack, bayTrack, modelsTrack] = stageTracks;
+    if (viewport.width >= 1440) {
+      ok(
+        "stage columns at 1440 follow DESIGN 300/840/300",
+        callsTrack >= 290 &&
+          callsTrack <= 310 &&
+          bayTrack >= 830 &&
+          bayTrack <= 850 &&
+          modelsTrack >= 290 &&
+          modelsTrack <= 310,
+        `tracks=${JSON.stringify(stageTracks)}`,
+      );
+    } else {
+      ok(
+        "stage columns at 1024 follow DESIGN 256/536/232",
+        callsTrack >= 246 &&
+          callsTrack <= 266 &&
+          bayTrack >= 526 &&
+          bayTrack <= 546 &&
+          modelsTrack >= 222 &&
+          modelsTrack <= 242,
+        `tracks=${JSON.stringify(stageTracks)}`,
+      );
+    }
+
+    // Focused keyboard traversal through the actual Tab order (views nav keeps all 8 buttons tabbable).
+    await page.locator("body").click({ position: { x: 5, y: 5 } });
+    const focusInfo = () =>
+      page.evaluate(() => {
+        const el = document.activeElement;
+        return {
+          tag: el?.tagName,
+          role: el?.getAttribute("role"),
+          id: el?.id,
+          ariaLabel: el?.getAttribute("aria-label"),
+          drawer: el?.getAttribute("data-drawer"),
+          inViewsNav: el ? el.closest(".views-nav") !== null : false,
+          inFilters: el ? el.closest(".filters") !== null : false,
+          inTicker: el?.id === "ticker",
+          tickerTitle: el?.classList.contains("ticker-title") ?? false,
+          outline: el ? getComputedStyle(el).outlineWidth : "",
+        };
+      });
+    await page.keyboard.press("Tab");
+    const source = await focusInfo();
+    ok(
+      "tab reaches source bar with visible focus",
+      source.role === "radio" && source.outline !== "0px",
+      JSON.stringify(source),
+    );
+
+    const visited = [];
+    let current = await focusInfo();
+    let steps = 0;
+    while (!current.inFilters && steps < 12) {
+      await page.keyboard.press("Tab");
+      current = await focusInfo();
+      visited.push(current);
+      steps++;
+    }
+    const viewsButtons = visited.filter((v) => v.inViewsNav && v.outline !== "0px");
+    ok(
+      "Tab traverses all 8 views buttons with visible focus before filters",
+      viewsButtons.length === 8 && visited[visited.length - 1]?.inFilters,
+      `visited=${JSON.stringify(visited.map((v) => ({ id: v.id, ariaLabel: v.ariaLabel, drawer: v.drawer })))}`,
+    );
+    ok("filters has visible focus", current.outline !== "0px", JSON.stringify(current));
+    ok(
+      "Tab reaches replay start",
+      visited.some((v) => v.id === "replay-start" && v.outline !== "0px"),
+      JSON.stringify(visited),
+    );
+    ok(
+      "Tab reaches ticker title before filters",
+      visited.some((v) => v.tickerTitle),
+      JSON.stringify(visited),
+    );
+
+    const tickerPath = [current];
+    for (steps = 0; steps < 30; steps++) {
+      await page.keyboard.press("Tab");
+      current = await focusInfo();
+      tickerPath.push(current);
+      if (current.inTicker) break;
+    }
+    ok(
+      "Tab traverses filter controls with visible focus",
+      tickerPath.filter((v) => v.inFilters).length >= 8 &&
+        tickerPath.filter((v) => v.inFilters).every((v) => v.outline !== "0px"),
+      JSON.stringify(tickerPath),
+    );
+    // Tab focuses rows without inventing a selection; j is the existing explicit row-selection action.
+    ok("Tab reaches event rows after filters", current.inTicker, JSON.stringify(current));
+    await page.keyboard.press("j");
+    await page.locator('#ticker tr[aria-selected="true"]').waitFor();
+    const selectedRing = await page
+      .locator('#ticker tr[aria-selected="true"] td:first-child')
+      .first()
+      .evaluate((el) => ({ width: getComputedStyle(el).outlineWidth, style: getComputedStyle(el).outlineStyle }));
+    ok(
+      "Tab reaches ticker after filters with selected-row focus ring",
+      current.inTicker && selectedRing.width === "2px" && selectedRing.style === "solid",
+      JSON.stringify({ tickerPath, selectedRing }),
+    );
+
+    // Source filter intentionally resets when the source changes.
+    await page.selectOption("#flt-source", "pc");
+    await page.click('[data-source="orca"]');
+    ok("source filter resets when source changes", (await page.locator("#flt-source").inputValue()) === "");
+
+    // Empty / waiting source shell.
+    await push(combined(all, sources(null)));
+    await page.click('[data-source="local"]');
+    await page.waitForSelector(".silent");
+    ok("empty source shows waiting text", /waiting for local/.test(await text(".silent")));
+    await shot("empty");
+
+    // Partial / sparse bay shell.
+    await push(combined(all, sources()));
+    await page.click('[data-source="orca"]');
+    await page.waitForSelector('svg[data-sparse="true"]');
+    ok(
+      "partial bay is sparse and tallied",
+      (await page.locator('svg[data-sparse="true"]').count()) === 1 &&
+        (await page.locator('[data-tally="role"]').count()) === 5,
+    );
+    await shot("partial");
+
+    // Error source shell.
+    await push(combined(all, sources(null, true)));
+    await page.click('[data-source="local"]');
+    ok(
+      "error source states the problem",
+      /error|refused/.test((await text(".silent")) + " " + (await text(".scope-strip"))),
+    );
+    await shot("error");
+
+    // Return to combined before intake / row checks.
+    await push(combined(all, sources()));
+    await page.click('[data-source="combined"]');
+
+    // Rejected payloads are detailed in the Errors drawer (DESIGN #39 scope approval).
+    const rejectedBefore = Number(
+      (await page.locator(".intake-full [data-rejected]").getAttribute("data-rejected")) ?? "0",
+    );
+    await pushText("{not json");
+    await pushText(JSON.stringify({ state: { events: 1 }, seq: 99, demo: true }));
+    await pushText(JSON.stringify({ state: combined(all), seq: 1, demo: true }));
+    // Two malformed envelopes are rejected; the valid but stale sequence is ignored, not rejected.
+    await page.waitForFunction(
+      (expected) =>
+        Number(document.querySelector(".intake-full [data-rejected]")?.getAttribute("data-rejected")) === expected,
+      rejectedBefore + 2,
+    );
+    const rejectedAfter = Number(
+      (await page.locator(".intake-full [data-rejected]").getAttribute("data-rejected")) ?? "0",
+    );
+    ok(
+      "rejected payload counter increments",
+      rejectedAfter === rejectedBefore + 2,
+      `before=${rejectedBefore} after=${rejectedAfter}`,
+    );
+    await page.locator("body").click({ position: { x: 5, y: 5 } });
+    await page.keyboard.press("3");
+    await page.waitForSelector("#drawer-errors");
+    const rejectedDrawer = page.locator("#drawer-errors [data-rejected]");
+    await rejectedDrawer.waitFor({ state: "attached" });
+    const rejectedSection = rejectedDrawer.locator("xpath=ancestor::section[1]");
+    const rejectedHeading = rejectedSection.locator("h3");
+    await rejectedHeading.scrollIntoViewIfNeeded();
+    const errorsText = await rejectedSection.textContent();
+    const drawerCount = await rejectedDrawer.getAttribute("data-rejected");
+    const intakeCount = await page.locator(".intake-full [data-rejected]").getAttribute("data-rejected");
+    ok(
+      "errors drawer lists rejected payloads",
+      /rejected payloads \(this page\)/.test(errorsText ?? "") &&
+        (await rejectedHeading.isVisible()) &&
+        Number(drawerCount) === rejectedAfter &&
+        drawerCount === intakeCount,
+      `drawer=${drawerCount} intake=${intakeCount} expected=${rejectedAfter}`,
+    );
+    await page.keyboard.press("Escape");
+
+    // Controlled long counts exercise the intentionally keyboard-scrollable title independently of the fixture burst.
+    const longState = combined(all);
+    longState.window = {
+      ...longState.window,
+      events: { ...longState.window.events, retained: 123456789, omitted: 123456789 - all.length },
+      evicted: { observe: 123456789, route: 123456789, permissions: 123456789 },
+    };
+    longState.errors = {
+      ...longState.errors,
+      malformed: { observe: 123456789, route: 123456789, permissions: 123456789 },
+      total: longState.errors.observe + longState.errors.route + 3 * 123456789,
+    };
+    await push(longState);
+    await page.waitForFunction(() => document.querySelector(".ticker-title")?.textContent?.includes("123456789"));
+    const title = page.locator(".ticker-title");
+    const titleText = await title.textContent();
+    if (viewport.width <= 1280) {
+      ok(
+        "ticker intake summary is compact",
+        (await visible(".intake-short")) && /intake:\s*malformed\s*\d+\s*·\s*rejected\s*\d+/.test(titleText ?? ""),
+      );
+    } else {
+      ok(
+        "ticker intake line is full at ≥1440",
+        (await visible(".intake-full")) && /malformed.*observe.*route.*permissions/.test(titleText ?? ""),
+      );
+    }
+    ok(
+      "long-count title retains counts intake and keyboard hints",
+      /newest.*retained.*evicted observe 123456789.*route 123456789.*permissions 123456789/.test(titleText ?? "") &&
+        /malformed.*rejected payloads/.test(titleText ?? "") &&
+        /\/ search.*esc close/.test(titleText ?? ""),
+    );
+    const titleMetrics = () =>
+      title.evaluate((el) => ({
+        left: el.scrollLeft,
+        max: el.scrollWidth - el.clientWidth,
+        height: el.getBoundingClientRect().height,
+        pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      }));
+    await title.focus();
+    await page.keyboard.press("Home");
+    for (let i = 0; i < 80; i++) await page.keyboard.press("ArrowRight");
+    await page.waitForTimeout(300);
+    const right = await titleMetrics();
+    await page.keyboard.press("Home");
+    for (let i = 0; i < 80; i++) await page.keyboard.press("ArrowLeft");
+    await page.waitForTimeout(300);
+    const left = await titleMetrics();
+    ok(
+      "long-count title keyboard scroll reaches both ends without page overflow",
+      right.max > 0 &&
+        right.left >= right.max - 2 &&
+        left.left <= 2 &&
+        Math.round(right.height) === 24 &&
+        !right.pageOverflow &&
+        !left.pageOverflow,
+      JSON.stringify({ right, left }),
+    );
+    await push(combined(all));
+
+    // Aggregate rail is explicitly unlinked from calls.
+    ok("aggregate title says stats only", /aggregate.*stats only/i.test(await text(".models .panel-title")));
+    ok("aggregate label says not linked to calls", /not linked to calls/i.test(await text(".models .rail-note")));
+
+    // 1024-specific layout: row heights, non-clipped filter row and ticker rows.
+    if (viewport.width <= 1280) {
+      const callHeight = await page
+        .locator(".call")
+        .first()
+        .evaluate((el) => el.getBoundingClientRect().height);
+      ok("call row height is 36px at 1024", callHeight === 36, `height=${callHeight}`);
+
+      const filtersEl = page.locator(".filters");
+      const filtersRect = await filtersEl.first().evaluate((el) => el.getBoundingClientRect());
+      ok("filter row height is 52px at 1024", Math.round(filtersRect.height) === 52, `height=${filtersRect.height}`);
+      const filtersOverflow = await filtersEl
+        .first()
+        .evaluate((el) => el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1);
+      ok("filter controls fit inside the 52px bar", !filtersOverflow);
+
+      const row = page.locator('tr[data-row="event"]').first();
+      const rowHeight = await row.evaluate((el) => el.getBoundingClientRect().height);
+      ok("ticker row height is 22px at 1024", rowHeight === 22, `height=${rowHeight}`);
+      const scrollRect = await page
+        .locator(".ticker-scroll")
+        .first()
+        .evaluate((el) => el.getBoundingClientRect());
+      const visibleRows = await page.locator('tr[data-row="event"]').evaluateAll(
+        (els, sr) =>
+          els.filter((e) => {
+            const r = e.getBoundingClientRect();
+            return r.top >= sr.top && r.bottom <= sr.bottom + 1;
+          }).length,
+        scrollRect,
+      );
+      ok("ticker shows 5 full rows at 1024", visibleRows === 5, `visible=${visibleRows}`);
+
+      ok("prompt column stays visible at 1024", await visible(".c-prompt"));
+      ok("latency column stays visible at 1024", await visible(".c-latency"));
+      const hiddenAtNarrow = [];
+      for (const sel of [".c-reason", ".c-oracle", ".c-classifier", ".c-fallback", ".c-session"]) {
+        const hidden = await page
+          .locator(sel)
+          .first()
+          .evaluate((el) => getComputedStyle(el).display === "none" || el.offsetParent === null);
+        hiddenAtNarrow.push({ sel, hidden });
+      }
+      ok(
+        "lower-priority columns move to detail at 1024",
+        hiddenAtNarrow.every((x) => x.hidden),
+        hiddenAtNarrow.filter((x) => !x.hidden).map((x) => x.sel),
+      );
+    }
+
+    // Actual reduced-motion arrival suppression on the 1440 main flow only.
+    if (viewport.width >= 1440) {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      const rmSynth = {
+        ...synthetic(900, 0),
+        id: "m33-rm-arrive",
+        ts: new Date().toISOString(),
+        prompt: "reduced motion arrival",
+        session: JSON.stringify(["pc", "ses_rm"]),
+        sourceId: "pc",
+      };
+      await push(combined([...all, rmSynth]));
+      const rmRow = page.locator('tr[data-id="m33-rm-arrive"]');
+      await rmRow.waitFor({ state: "visible" });
+      const rmAnim = await rmRow.evaluate((el) => getComputedStyle(el).animationName);
+      ok("reduced motion suppresses row arrival animation", rmAnim === "none" || rmAnim === "", `animation=${rmAnim}`);
+
+      await page.emulateMedia({ reducedMotion: "no-preference" });
+      const normSynth = {
+        ...synthetic(901, 1),
+        id: "m33-norm-arrive",
+        ts: new Date().toISOString(),
+        prompt: "normal motion arrival",
+        session: JSON.stringify(["pc", "ses_norm"]),
+        sourceId: "pc",
+      };
+      await push(combined([...all, rmSynth, normSynth]));
+      const normRow = page.locator('tr[data-id="m33-norm-arrive"]');
+      await normRow.waitFor({ state: "visible" });
+      const normAnim = await normRow.evaluate((el) => getComputedStyle(el).animationName);
+      ok(
+        "normal motion plays row arrival animation",
+        normAnim !== "none" && normAnim !== "" && /arrive|travel/.test(normAnim),
+        `animation=${normAnim}`,
+      );
+    }
+
+    // Detail access and focus restoration at both sizes.
+    await page.locator("body").click({ position: { x: 5, y: 5 } });
+    await page.keyboard.press("j");
+    const selId = await page.locator('tr[aria-selected="true"]').getAttribute("data-id");
+    await page.keyboard.press("Enter");
+    ok("Enter opens event detail", await page.locator('aside[aria-label="event detail"]').isVisible());
+    const detailHeadings = await page
+      .locator("aside.detail .detail-body h3")
+      .evaluateAll((els) => els.map((e) => e.textContent));
+    ok(
+      "detail contains raw observe and route headings",
+      detailHeadings.includes("raw observe") && detailHeadings.includes("raw route"),
+      JSON.stringify(detailHeadings),
+    );
+    ok("detail moves focus to close button", (await active()) === "close detail");
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => document.querySelector('aside[aria-label="event detail"]') === null);
+    await page.waitForFunction(() => document.activeElement?.id === "ticker", { timeout: 1000 }).catch(() => {});
+    ok(
+      "Escape closes detail and restores focus to ticker",
+      (await page.locator('aside[aria-label="event detail"]').count()) === 0 && (await active()) === "ticker",
+    );
+
+    // Drawer focus restoration (open from a views button, close, return to it).
+    await page.focus('button[data-drawer="agreement"]');
+    await page.keyboard.press("Enter");
+    await page.waitForSelector("#drawer-agreement");
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(() => document.querySelector("#drawer-agreement") === null);
+    await page
+      .waitForFunction(() => document.activeElement?.getAttribute("data-drawer") === "agreement", { timeout: 1000 })
+      .catch(() => {});
+    ok(
+      "drawer close restores focus to opener",
+      (await page.evaluate(() => document.activeElement?.getAttribute("data-drawer"))) === "agreement",
+    );
+
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+    ok("no horizontal page overflow", !overflow);
+
     await context.close();
   }
 }
@@ -678,8 +1266,13 @@ try {
   }
   await real.close();
   if (opts["--screenshots-dir"] || opts["--exchange"]) {
-    await exchangeChecks({ browser, origin, initial, outDir: opts["--screenshots-dir"] || tmpdir(), check, problems });
-  } else skip("exchange harness", "Pass --screenshots-dir or --exchange to run the M9 exchange checks");
+    const outDir = opts["--screenshots-dir"] || tmpdir();
+    await exchangeChecks({ browser, origin, initial, outDir, check, problems });
+    await laneBayChecks({ browser, origin, initial, outDir, check, problems });
+  } else {
+    skip("exchange harness", "Pass --screenshots-dir or --exchange to run the M9 exchange checks");
+    skip("Lane Bay #33 shell checks", "Pass --screenshots-dir or --exchange to run the controlled DESIGN #39 checks");
+  }
   if (appendPath) {
     // The synthetic record is based on the anonymized observe fixture, never on real logs.
     const template = {
