@@ -2,6 +2,44 @@
 
 All fixtures are anonymized. Checks run on the feature branch; no real logs or credential files are used.
 
+## Lane Bay bounded identity (#33)
+
+Scope approval: [maintainer decision](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/33#issuecomment-6715778224), after accepted DESIGN revision [#39](https://github.com/crisesarmiento/opencode-routing-dashboard/pull/39). The detailed browser-payload rejection counter belongs in Errors; the ticker retains a compact intake summary. No parser, aggregator, server, source, transport contract, dependency or font change is included.
+
+### Tests-first and integrated checks
+
+- Initial focused red: `bun --no-env-file test test/lane-bay.test.tsx test/ui-shell.test.tsx test/views.test.tsx` → exit 1, 35 pass / 17 fail on the new presentation/behavior assertions. Focused green after implementation: exit 0, 52 pass. Later focused reds cover aggregate source attribution, focus error/context fields, responsive containment, long-title access, model bars and the event-row focus target; each passed after its bounded correction.
+- Existing presentation tests explicitly adopt the accepted token values, state SVG shapes, ticker column tiers and aggregate wording. The ticker-alert helper now locates the outer ticker section rather than the relocated inner keyboard target; its alert-scope assertions are unchanged. No test was deleted, skipped or weakened. The font-size ceiling remains.
+- Reconciled local checks: `bun --no-env-file run typecheck` → exit 0; `bun --no-env-file run lint` → exit 0; `bun --no-env-file test` → exit 0, **283 pass / 0 fail / 40 files**; `bun --no-env-file scripts/build.ts` → exit 0; `git diff --check` → exit 0. Direct build invocation prevents automatic dotenv loading. Implementation-head CI is a separate gate recorded on the PR; later documentation-only sign-off reuses unchanged runtime evidence.
+
+### Isolated browser verification
+
+The canonical fixture server uses fresh temporary copies of the three JSONL files and `stats.json`, an empty temporary HOME, explicit observe/route/permissions/stats/snapshot paths, `ORD_DEMO=true`, `ORD_PORT=0`, and `bun --no-env-file src/cli.ts` against the completed build. Only loopback is bound; no OpenCode stats child or personal browser profile is used. The maintainer separately authorized temporary **Playwright 1.65.0** under `/tmp/opencode`, installed with lifecycle scripts disabled and isolated npm configuration; the project dependency manifest/lockfile is unchanged. Existing `/usr/bin/chromium` is used; no browser is installed.
+
+Executed command (owned paths abbreviated, not personal data):
+
+```sh
+PLAYWRIGHT_MODULE_PATH=<temporary-tools>/node_modules/playwright/index.mjs \
+CHROMIUM_PATH=/usr/bin/chromium \
+node scripts/verify-ui.mjs --url http://127.0.0.1:37931 \
+  --state-dir <temporary-canonical-state> \
+  --screenshots-dir /tmp/opencode/ord-m33-evidence/screenshots-reconciled \
+  --report /tmp/opencode/ord-m33-evidence/ui-reconciled.json --exchange yes
+```
+
+- **Exit 0, 208 passed / 0 failed / 0 skipped.** Canonical and controlled-exchange datasets remain separate. The Lane Bay controlled snapshots validate before reaching the intended rendered state; they do not establish real source transport. Combined controlled state now clears all stats-derived usage/model/tool totals, not only `stats`, preventing false financial evidence. Selected PC retains its own stats; Orca/local unknown stats remain unknown.
+- First browser pass: exit 1, 187/198 passed, exposing real filter/bay clipping plus harness assumptions. Second pass: exit 1, 192/196 passed. These were not accepted captures. Reconciliation fixed stale rail-width expectations, below-viewport text checks, asynchronous focus/counter assertions and a false-positive Tab check. The latter exposed a genuine focus-target gap: `#ticker` now names the event-row scroll region after the filters. A final harness attempt exposed its missing explicit `j` selection precondition; after adding that action, the complete run above passed.
+- Covered: source/filter resets and selection/replay coherence; drawers, raw detail and Escape focus return; actual Tab traversal to event rows and selected-row 2 px ring; rejected-payload detail in Errors; role/evidence separation; responsive columns, full rows and controls; long ticker disclosures reachable at both scroll extremes by keyboard; actual arrival animation under normal/reduced motion; fonts/CSP and console/page/network checks. Normal title overflow is intentional containment, not hidden evidence.
+- Design review opened all eight final `docs/screenshots/m33-{populated,empty,partial,error}-{1440x900,1024x768}.png` captures. DEMO is visible throughout. Measured chrome is 162 px; stage is 490/398 px with grid tracks 300/840/300 and 256/536/232; ticker is 248/208 px, filters 26/52 px, data rows 22 px, 8/5 complete visible rows. Separate isolated alert measurements are 468/376 px stage and 270/230 px ticker. The aggregate frame is inset 4 px inside its grid track.
+- Intentional adaptations: scrollable bay body preserves access to all five role jacks/tally rows; replay/focus/legend do not shrink; long compact focus lines and the 24 px ticker title scroll horizontally. The title retains its own keyboard stop; event rows follow filters. Redundant narrow scope diagnostic text can exceed the strip width; the full stats limitation remains visible in the aggregate rail. Timestamps remain local, with a timezone tooltip rather than a false UTC suffix.
+- Owned canonical servers were stopped; `ss -ltnp '( sport = :36669 or sport = :36741 or sport = :37931 )'` → exit 0, no listeners. Temporary reports stay outside the repository; only reviewed screenshots are committed.
+
+### Separate real loopback demo transport
+
+`node /tmp/opencode/validate-demo-transport.mjs` → exit 0. This owned temporary verifier started `bun --no-env-file scripts/demo-exchange.ts --port 0 --live --duration 25 --keep` with isolated HOME/XDG and verified `dist/index.html` already existed, so no implicit build occurred. The valid DEMO snapshot contained local/PC/Orca (4/8/5 events), PC and local stats with distinct ranges, Orca stats disabled, and no combined financial sum. A real PC-agent append increased its count from 8 to 9 over dashboard SSE. Shutdown exit 0; no owned listeners remained. Summary: `/tmp/opencode/ord-m33-evidence/demo-transport.json`. Initial diagnostic helper errors are not used as successful evidence.
+
+**Limits:** controlled error/connecting/stale screenshots are not a real browser disconnect/reconnect test (#24). The real demo establishes loopback fixture transport, not physical hosts or runtime delegation. No macOS, screen-reader, accessibility-compliance, general comprehension or production-performance claim follows. New-user comprehension remains unrun. #23 stays open; #24/#25/#27/#31 remain independent.
+
 ## OpenCode 2.2.6 baseline check (2026-11-07)
 
 Maintainer decision: use the installed, newest OpenCode 2.2.6 as the verification baseline. Same method as the 2.2.5 check, run against the compiled `@opencode/cli` 2.2.6 binary (the mise wrapper script was bypassed for the token scan).

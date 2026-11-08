@@ -170,7 +170,7 @@ full raw records remain inspectable for displayed events.
 - **Flow:** live suggestion switchboard, recorded context jacks, aggregate model rail and filterable ticker.
 - **Agreement:** context-only confusion matrix and confidence histogram; not a delegation success metric.
 - **Usage:** models, providers and variants, with separate stats-range totals and reported costs.
-- **Errors:** classifier/route failures, lifetime malformed counters, stats tool failures and permission verdicts.
+- **Errors:** classifier/route failures, lifetime malformed counters, browser payloads rejected since page load, stats tool failures and permission verdicts. The ticker keeps a compact intake summary at narrow widths; browser rejection counts are not malformed log-line counts.
 - **History:** weekly stats snapshots; each point retains its own source range.
 - **Sources:** combined or individual PC/Orca/local inputs, health and client/directory evidence. Configured labels are not proof of runtime client identity.
 - **Alerts / Quota / Presets:** debounced evidence alerts, user-limit estimates and period comparison with source coverage. Unknown execution metrics remain unavailable.

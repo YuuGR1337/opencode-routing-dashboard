@@ -4,10 +4,10 @@ The UI must be beautiful, original, dynamic and fun, and dense. It is explicitly
 
 ## Contract status
 
-- **Accepted when this document merges:** the **Lane Bay** contract below (issue [#32](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/32), parent [#23](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/23); maintainer decisions recorded in [the #32 comment](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/32#issuecomment-6714423966)). It is the target for UI work in #33.
-- **The shipped UI still uses the previous amber-phosphor identity** until [#33](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/33) lands. #33 is not approved by this document. Do not change product UI to match this contract without that approval.
+- **Accepted in merged PR [#39](https://github.com/crisesarmiento/opencode-routing-dashboard/pull/39):** the **Lane Bay** contract below (issue [#32](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/32), parent [#23](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/23); maintainer decisions recorded in [the #32 comment](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/32#issuecomment-6714423966)). It is the target for UI work in #33.
+- **#33 has separate [bounded-scope approval](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/33#issuecomment-6715778224).** This implementation applies that slice; the previously shipped UI uses amber-phosphor until #33 lands. This approval does not extend to the deferred items below or the rest of #23.
 - The sections "Previous identity" and the M4a/M4/M9/M11 reviews at the end describe what ships today. They stay as the historical record and as the baseline for any UI work done before #33.
-- **Not yet measured in a browser.** Every pixel value marked *[re-measure]* comes from static mockup arithmetic, not from the DOM, and #33 must re-measure it. Contrast ratios are **computed with the WCAG formula on token hex pairs; they are not an accessibility audit.** Keyboard, focus, reduced motion and rendering behaviour in this contract are **intent, not runtime-verified**.
+- **Layout measured in isolated Linux Chromium for #33.** The layout table below records DOM measurements against anonymized DEMO inputs, not just static mockup arithmetic. Contrast ratios are **computed with the WCAG formula on token hex pairs; they are not an accessibility audit.** Keyboard, focus, reduced motion and rendering rules are the contract; executed checks and their limits are recorded separately in [VERIFICATION](VERIFICATION.md).
 - Mockups behind this contract are static drawings labeled `DEMO · STATIC MOCKUP · PROPOSAL`, built from the anonymized fixtures. They are referenced from the #32 issue comments and are not committed.
 
 ## Concept: the Switchboard
@@ -75,22 +75,23 @@ Top to bottom: **DEMO band → header readouts → source bar → views nav → 
 
 | Element | 1440×900 | 1024×768 |
 | --- | --- | --- |
-| DEMO band | 18 px *[re-measure]* | same |
-| Header (wordmark + six readouts + link) | 56 px *[re-measure]* | same |
-| Source bar / views nav / scope strip | 34 / 28 / 26 px *[re-measure]* | same |
-| Chrome above the stage | 162 px *[re-measure]* | 162 px *[re-measure]* |
-| Stage columns (calls / bay / aggregate) | 300 / 840 / 300 | 256 / 536 / 232 *[re-measure]* |
-| Call rail rows | 40 px | **36 px** *[re-measure]* |
-| Ticker: title 24 + filters 26 + header 22 + rows 22 each | 248 px for 8 rows *[re-measure]* | 208 px for 5 rows, with two filter rows *[re-measure]* |
-| Stage height | 490 px *[re-measure]* | 398 px *[re-measure]* |
+| DEMO band | 18 px | same |
+| Header (wordmark + six readouts + link) | 56 px | same |
+| Source bar / views nav / scope strip | 34 / 28 / 26 px | same |
+| Chrome above the stage | 162 px | 162 px |
+| Stage columns (calls / bay / aggregate) | 300 / 840 / 300 | 256 / 536 / 232 |
+| Call rail rows | 40 px | **36 px** |
+| Ticker: title 24 + filters 26 + header 22 + rows 22 each | 248 px for 8 rows | 208 px for 5 rows, with two filter rows |
+| Stage height | 490 px | 398 px |
 | Active alert row | +22 px | +22 px |
 
 - **22 px ticker rows hold.** Panel titles 24 px, filter rows 26 px. Gap/padding base is 4 px; inherited component heights (22/24/26) are kept.
-- The ticker height is sized so no half row shows at the two target viewports. Today's `--tick` (244 px / 192 px) cuts a half row. Final values come from #33's re-measure.
+- The ticker height is sized so no half row shows at the two target viewports. With an active alert it grows to 270 / 230 px and the stage shrinks to 468 / 376 px, retaining 8 / 5 full data rows. Without an exchange source bar, chrome is 34 px shorter and that space belongs to the stage. Aggregate column measurements are grid tracks; the dashed panel has a 4 px inset on each side.
+- **Measured #33 containment adaptations:** the bay body scrolls internally when all roles and the sparse tally cannot fit alongside replay, focus and legend; those controls and notes do not shrink. All five roles/tally rows remain reachable without dropping calls. Long compact focus lines scroll horizontally. The 24 px ticker title also scrolls horizontally with keyboard focus and arrow keys when full counts/intake/hints exceed the viewport; no disclosure is removed. Only prompt cells use ellipsis.
 - **Readouts:** prompts/min, context agreement, fallback (`n/d`), error rate, p50 latency, tokens today, each with its note (`last 60 s`, `6 of 8 compared`, `not detectable`, `retained window`, `stats range ≠ today`). No metric is added or dropped. Optional note on p50: `classifier · retained window` (the value is the classifier latency from observe/route records).
 - **Clipping fixes (required by this contract):**
   - Patch-bay title is short (`PATCH BAY · suggestion vs recorded context`); the legend lives in the bay foot as two lines that may wrap.
-  - The source-health row is split into single-line concerns: views nav row; scope strip with file lamps; intake text in the ticker title. At ≥1440 the intake line keeps the existing full text; at ≤1280 it becomes `intake: malformed N · rejected N`. **Where the detailed `rejected payloads` count lives at ≤1280 is decided in #33** (the Errors drawer shows malformed counters today; rejected has no drawer home).
+   - The source-health row is split into single-line concerns: views nav row; scope strip with file lamps; intake text in the ticker title. At ≥1440 the intake line keeps the existing full text; at ≤1280 it becomes `intake: malformed N · rejected N`. **The detailed `rejected payloads` count lives in the Errors drawer**, per the [#33 scope approval](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/33#issuecomment-6715778224); reuse the existing counter without adding a metric or changing ingestion.
   - Row counter (`N of M sent`) sits in a fixed, never-truncated right slot. Filters keep every existing control and wrap to two rows at ≤1280; if anything truncates it is the scope label.
   - **Call in focus is never hidden.** At ≥1440 it stays in the bay as today. At ≤1280 a **compact two-line call in focus** sits in the bay foot (suggestion + conf, ctx agent and `same role`/`differs`, decision, classifier latency, exec agent/model `—`, fallback `not detectable`). The full record stays in the detail drawer (`Enter`). This replaces hiding the panel at ≤1280.
   - Latency and prompt stay visible at ≤1280; reason, oracle, classifier, fallback and session are what moves to detail there.
@@ -137,9 +138,9 @@ The aggregate rail has a dashed `--dim2` frame, the `NOT LINKED TO CALLS` label,
 ## Keyboard and focus (intent, not runtime-verified)
 
 - Existing keys unchanged: `/` search, `f` filters, `j/k` rows, `enter` drill-down, `1`–`8` views, `esc`.
-- **Focus ring:** 2 px `--sel`, 1 px offset, on every control and on the active ticker row while the ticker holds focus (today 1 px amber). The ticker container keeps no outline of its own, so the row indicator must be explicit.
+- **Focus ring:** 2 px `--sel`, 1 px offset, on every control and on the active ticker row while the event-row scroll region holds focus. That container keeps no outline of its own, so the row indicator must be explicit. `#ticker` names this inner region after the filters, not the outer layout section.
 - Source radios: arrow keys move the choice, as today. Escape behaviour (search blur, drawer close) is unchanged.
-- Proposed tab order: source bar → views nav → ticker filters → ticker.
+- Tab order: source bar → views nav → existing bay/replay controls → scrollable ticker title → ticker filters → event rows. The extra title stop preserves keyboard access to long disclosures; the row stop follows the filters. No focus trap or roving views navigation is introduced.
 
 ## Density guidelines
 
@@ -160,7 +161,7 @@ The aggregate rail has a dashed `--dim2` frame, the `NOT LINKED TO CALLS` label,
 Each UI milestone ends with screenshots (Playwright, 1440×900 and 1024×768, live with fixtures replayed) saved to
 `docs/screenshots/` and reviewed against this file; list every deviation.
 - Cover populated, empty, partial and error/disconnected states at both sizes, with DEMO visible. Link-down must come from a real disconnect, not only a drawn state (see #24).
-- #33 must re-measure every *[re-measure]* value in a browser and update the token assertion in `test/ui-shell.test.tsx` ("stylesheet follows DESIGN tokens") to the new hex values **explicitly and in the same change**; it must not be weakened or skipped. The font-size ceiling check (≤ 20 px) still holds.
+- Layout values above must stay backed by browser measurements. The token assertion in `test/ui-shell.test.tsx` ("stylesheet follows DESIGN tokens") is updated explicitly with the accepted identity in #33; do not weaken or skip it. The font-size ceiling check (≤ 20 px) still holds.
 - A new-user comprehension exercise (protocol drafted for #32) has not been run. Comprehension is unknown until it is.
 
 ## Evidence-driven deviations (v1)

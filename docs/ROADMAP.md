@@ -15,7 +15,7 @@ Make recorded harness activity understandable, problems investigable, and config
 - **Still open:** exact design, lifecycle/control/security contract, platform support, diagnostic budgets, second harness, external-evidence authorization, and each implementation slice.
 - **Not committed:** Rust migration, graph, attributable task budget, rule-management workflow, hosted collaboration, or harness execution.
 
-The existing [DESIGN](DESIGN.md), [SPEC](SPEC.md), and evidence/security limits remain the implementation baseline until explicitly revised. DESIGN now records the accepted Lane Bay contract (#32); the shipped UI keeps the previous identity until its implementation (#33) is approved and lands. Direction selection does not mark all related issues Approved.
+The existing [DESIGN](DESIGN.md), [SPEC](SPEC.md), and evidence/security limits remain the implementation baseline until explicitly revised. DESIGN records the accepted Lane Bay contract (#32 / #39); its bounded implementation has separate [#33 approval](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/33#issuecomment-6715778224). The previous identity remains shipped until that implementation lands. Direction selection does not mark all related issues Approved.
 
 ## Horizons and evidence gates
 
