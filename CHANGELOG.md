@@ -12,6 +12,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 - Stop setting `OPENCODE_DISABLE_LSP_DOWNLOAD` for the stats child (and strip any inherited value): the token is absent from the OpenCode 2.2.5 and 2.2.6 binaries, so it was not a verified safeguard.
 
 ### Maintenance
+- Record, as documentation only, the maintainer-approved read-only Sessions inspector contract (entry from a selected event with key `s`, session list as a ninth view on key `9` with a no-tab fallback, scope header, recorded/enriched/not-available field states, permission verdicts, “not execution” labelling, source id on each row in the combined list). It revises DESIGN's “no new views” rule; the ninth-tab fit is font/CSS arithmetic pending a browser measurement in #43; no code or captures are included (#41, #4).
 - Record the accepted Lane Bay design contract in `docs/DESIGN.md` (graphite tokens, type scale, narrow-width hierarchy, evidence-preserving states, deferred items) as documentation only; the shipped UI keeps the previous identity until the separately approved implementation lands (#32, #33).
 - Re-verify the stats contract, CLI flags and default paths against installed OpenCode 2.2.6 (isolated empty profile) and adopt it as the documented baseline.
 - Document that only the maintainer approves issue-backed work, that agents record `Approved` solely from an explicit maintainer instruction, and that project `Status` and issue progress comments stay current as work advances (#44).

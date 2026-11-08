@@ -7,6 +7,7 @@ The UI must be beautiful, original, dynamic and fun, and dense. It is explicitly
 - **Accepted in merged PR [#39](https://github.com/crisesarmiento/opencode-routing-dashboard/pull/39):** the **Lane Bay** contract below (issue [#32](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/32), parent [#23](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/23); maintainer decisions recorded in [the #32 comment](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/32#issuecomment-6714423966)). It is the target for UI work in #33.
 - **#33 has separate [bounded-scope approval](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/33#issuecomment-6715778224).** This implementation applies that slice; the previously shipped UI uses amber-phosphor until #33 lands. This approval does not extend to the deferred items below or the rest of #23.
 - The sections "Previous identity" and the M4a/M4/M9/M11 reviews at the end describe what ships today. They stay as the historical record and as the baseline for any UI work done before #33.
+- **Approved by the maintainer on 2026-11-08 in [#41](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/41) (parent [#4](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/4)):** the read-only **Sessions inspector** in the section "Sessions inspector" below. It is an exception to the "no new views" rule in "Navigation and terminology" and to the eight-view list under "Concept". The exception takes effect when the PR that records it merges. It authorizes only the follow-up work in #42 (model) and #43 (view and captures), each still needing its own start.
 - **Layout measured in isolated Linux Chromium for #33.** The layout table below records DOM measurements against anonymized DEMO inputs, not just static mockup arithmetic. Contrast ratios are **computed with the WCAG formula on token hex pairs; they are not an accessibility audit.** Keyboard, focus, reduced motion and rendering rules are the contract; executed checks and their limits are recorded separately in [VERIFICATION](VERIFICATION.md).
 - Mockups behind this contract are static drawings labeled `DEMO · STATIC MOCKUP · PROPOSAL`, built from the anonymized fixtures. They are referenced from the #32 issue comments and are not committed.
 
@@ -17,7 +18,7 @@ Routing is shown as a live switchboard. A modern look is allowed; the telephone-
 - **Middle – the patch bay**: Jev's suggestion is a dashed *ghost wire* to a role jack (orchestrator, oracle, fixer, explorer, designer). A separate hollow `ctx` ring beside each jack marks the **recorded context agent**. Agreement = the suggestion jack and the ctx ring are the same role. Disagreement is stated in text (`differs`) and drawn as a dotted bracket.
 - **Right rail – aggregate**: one entry per provider/model/variant from the stats file, sized by steps, explicitly **not linked to calls**.
 - **Bottom – the ticker tape**: dense, monospaced event log, filterable, clickable to drill down.
-- Drawers (nav row, keys 1–8): Agreement, Usage, Errors, History, Alerts, Quota, Presets, Export.
+- Drawers (nav row, keys 1–8): Agreement, Usage, Errors, History, Alerts, Quota, Presets, Export. Approved in #41: a ninth, Sessions (key 9).
 - Not drawn in v1 (evidence limits, see "Evidence-driven deviations"): per-call agent→model cables and fallback sparks.
 
 ## Typography (Lane Bay)
@@ -99,7 +100,7 @@ Top to bottom: **DEMO band → header readouts → source bar → views nav → 
 ## Navigation and terminology
 
 - **Source bar:** keeps its radiogroup behaviour (combined + per-source, arrow keys). Only the look changes: pill radios with state icon + word; `last seen` is shown at ≥1440 and kept in the tooltip at ≤1280.
-- **Views nav:** its own text-tab row with the existing digits 1–8, never wrapping. Alerts shows ▲ plus the count when active. No new views, no sidebar, no Settings, no theme selector.
+- **Views nav:** its own text-tab row with the existing digits 1–8, never wrapping. Alerts shows ▲ plus the count when active. No new views, no sidebar, no Settings, no theme selector. **Exception approved in #41:** one added view, Sessions (ninth tab, key `9`); see "Sessions inspector". Nothing else in this sentence changes.
 - **Scope strip:** one line that states the viewed source, its state, last event time and the retained count, e.g. `viewing pc · live · last event 02:03:35 UTC · 8 calls retained`, plus file lamps (`observe ok · route ok · permissions ok · stats ok`; `stats missing`; `no files read yet`; `last known:` under link down). Counts must reuse the existing sent/retained values; this adds no metric and no connection-state machine (transport state belongs to #24).
 
 | Term | Contract |
@@ -113,6 +114,112 @@ Top to bottom: **DEMO band → header readouts → source bar → views nav → 
 ## Selected-call detail
 
 Fields, in order: suggestion + conf; needs oracle; decision + reason; ctx agent; ctx vs suggestion (`same role` / `differs`); classifier + latency; exec agent/model `—`; fallback `not detectable`; tokens/cost `—`. Error rows show `suggestion — classifier failed`, `failure <name>`, `latency <n> ms` with the error icon. The selected call is a 2 px `--sel` bar with a `--panel2` fill in the rail and the ticker. Selected is not the same as focused (see Keyboard).
+
+## Sessions inspector (approved in #41)
+
+Status: **approved contract (maintainer decisions of 2026-11-08 in #41), not implemented, not captured.** It is the only addition to the view list, and it revises the "no new views" line (see Contract status). Everything below reuses Lane Bay tokens, type steps, 22 px rows and the 2 px `--sel` focus ring; it adds no colour, font, motion or dependency.
+
+**Purpose.** A read-only place to read what the retained sample holds for one session of one source, in order, with each field's evidence state. It is a reading aid, not a task monitor: it does not say what ran, whether it worked, or that the session is complete.
+
+### Entry points
+
+1. **From a selected event:** a `session` action in the event detail drawer (and key `s` while an event is selected) opens the inspector on that event's session, with the same event highlighted.
+2. **From the Sessions tab (key `9`):** opens the session list for the viewed source.
+3. Both are shown only for the viewed source. In the combined view the list is shown without first choosing a source, and each session row carries its source id (maintainer decision: friendlier than forcing a source choice); sessions of different sources are never merged or joined, even if the raw session strings match (the federated id is `JSON.stringify([sourceId, session])`).
+
+### Structure
+
+- **List** (one row per session present in the sent events): source, session, first–last event time, sent count, error mark (triangle `!` + word), permission count. Sorted newest last event first. 22 px rows. Names are the session strings as recorded; no titles, no task names, no inferred outcome.
+- **Detail**: scope header, then the ordered session timeline (reuses the existing `session timeline` rows and `sessionTimeline()` order), then the selected row's fields, then permission verdicts, then the "not execution" block.
+- **Replay:** reuses the existing replay cursor (play/pause/speed, `p , . [ ]`, one cursor shared with the timeline, selection and Call in focus). The inspector adds no second cursor and no new transport. Replay stays a client cursor over the retained sample, not durable history.
+- **Read-only:** no execute, retry, approve, deny, rerun, edit or delete control; no success/“completed” indicator; no row, session or header colour implies pass/fail. Error rows keep the existing error triangle and error name, as elsewhere.
+
+### Layout (proposed values; **not browser-measured**, to be measured in #43)
+
+| Element | 1440×900 | 1024×768 |
+| --- | --- | --- |
+| Placement | the existing right-side overlay mechanism (same open/close, `Esc`, focus return), in its wide form | same mechanism, full stage width |
+| Panes | two: list ~280 px, detail the rest | one at a time: list, then detail with a `← sessions` back control; `Esc` goes detail → list → close |
+| Chrome kept | DEMO band, header, source bar, views nav, scope strip and ticker stay visible and unchanged | same |
+| Scope header | 2 lines max, 11 px caps labels + 13 px values | 3 lines max; wraps, never truncates counts |
+| Row height | 22 px (timeline and list) | 22 px |
+| Overflow | list and detail scroll inside the panel; long session strings scroll horizontally, not ellipsis | same |
+
+The 640–720 px overlay width recorded in the M4 review does not fit two panes; the wide form is a proposal and is the first thing #43 must measure. If it does not fit at 1024×768 without clipping a count, the single-pane rule above is the fallback, not a smaller font (floor stays 11 px).
+
+### Navigation decision (measured from fonts and CSS, not in a browser)
+
+Question: can the views row take a ninth tab without wrapping or clipping at 1024 px, given `.views-nav` is `display:flex; flex-wrap:nowrap; overflow:hidden; gap:2px; padding:0 12px` and each tab is `padding:0 10px`, label 12.5 px Instrument Sans, digit 11 px IBM Plex Mono with 4 px margin?
+
+Method: advance widths summed from the repository's own `InstrumentSans-Regular/Bold.ttf` and `IBMPlexMono-Regular.ttf` (`hmtx`/`cmap` tables, read with a throwaway Python script outside the repo; nothing installed). For each tab the wider of regular and bold was used (the active tab is bold). Kerning, hinting, subpixel rounding and the Alerts badge are **not** modelled.
+
+| | Sum of tabs + gaps + 24 px padding | Share of 1024 px |
+| --- | --- | --- |
+| Eight tabs (today) | ≈ 629 px | ≈ 61 % |
+| Nine tabs (+ Sessions, ≈ 83.5 px) | ≈ 714 px | ≈ 70 % |
+| Nine tabs + active Alerts badge (≈ 30 px estimated: 6 margin + 8 padding + 2 border + digits) | ≈ 745 px | ≈ 73 % |
+
+Result: the model leaves about 280 px of slack at 1024 px, so a ninth tab is expected to fit without wrapping. **Decision: ninth tab `Sessions`, key `9`** (the key handler already accepts `1`…`DRAWERS.length`), **approved by the maintainer, subject to a browser measurement in #43 confirms no clipping at 1024×768 with the Alerts badge active.** Maintainer-approved fallback if that measurement fails: no tab; entry only from the event detail `session` action and key `s`, with the list as the first state of the inspector. This is a calculation from font files, not a rendered measurement; the 1280 px tier was not computed (larger than 1024, so it is not the binding case).
+
+### Three field states (shape and word, never colour alone)
+
+Every field in the inspector carries exactly one of these, as a chip of the word plus a glyph; the chip border pattern also differs.
+
+| State | Glyph + word | Border | Meaning | Rule |
+| --- | --- | --- | --- | --- |
+| Recorded | `▮ recorded` | solid 1 px | the value is in a retained source record (observe, route, permissions) | shows the record kind in the row: `observe`, `route`, `permissions` |
+| Explicitly enriched | `＋ enriched · validated` | solid 1 px + `via <field>` text | value came from an optional enrichment field that passed validation **and** is attributable to this session/message | shown only where both hold. Otherwise the field is not available. Never inferred, never from aggregate stats, never from the current preset |
+| Not available | `— not available` | dashed 1 px | the sources do not establish it | always with a reason, e.g. `not in Jev logs`, `no validated enrichment` |
+
+Colours only reinforce: recorded `--ink`, enriched `--ink`, not available `--dim` (never `--dim2` for text). Source-reviewed fact for #41: in `FlowEvent` the execution agent/model/provider/variant fields are typed `null` (`src/core/aggregate.ts`), and enrichment is consumed by analytics, not attached to events. So at first implementation **every execution field is `— not available`**, and the enriched state is defined here but may be unused until an enriched, attributable value is wired in under its own approval.
+
+### Scope header
+
+One header above the timeline, always visible, never collapsed:
+
+`source <id> · session <string> · sent <n> · retained <n> (source window) · omitted <n> · evicted <n> · sample, not a complete archive`
+
+- **sent** is the count of this session's events the client holds (from the sent events; the same value as `replayCoverage().inSession`).
+- **retained, omitted, evicted** reuse the existing `window` counters of the viewed source (`window.events` retained/omitted, `window.evicted.observe + route`). They are source-window figures, labelled so; a per-session retained count is not claimed, because omitted rows cannot be attributed to a session.
+- When `omitted > 0` or `evicted > 0` the header adds `older events of this session may be missing` (the existing `mayBeIncomplete` rule). When both are 0 it still says `sample`, because rotation, restart and the retention cap are outside the counters.
+- Under link down or stale: the existing `last known` wording; the inspector never shows a fresher claim than the scope strip.
+
+### Permission verdicts
+
+A section `permission gate · this session` lists the retained permission records whose (federated) session equals the inspected one. Same data and handling as the Errors drawer: same fields (ts, verdict, commands, reversible, routine, latency), same ● allow / ◆ other glyph-plus-word rule, `—` for absent `scores`, commands shown as recorded, same `newest k of n retained verdicts listed` note taken from `window.permissions`, and the empty text `no permission verdicts in the retained window`. Verdicts are the gate's recorded output, not an approval event: no approve/deny control, and no sentence such as “approved by user”.
+
+### Not execution
+
+A fixed block, `ROUTER · recommendation, not execution`, groups the Jev suggestion, confidence, needs-oracle, route decision and reason, ctx agent, and `classifier model` (the observe `model` is the classifier, not the execution model). Labels follow the existing terms (`ctx agent` = “recorded context agent, not proof of delegation”; `injected` = recommendation injected, not proof that the suggested agent ran). Below it: `exec agent/model — not available`, `fallback not detectable`, `tokens/cost — not available`, `linked stats none (aggregate stats are not attributable to a session)`. No success, finished, passed or duration-of-task wording anywhere; the span between first and last event is labelled `observed event span`, never run time.
+
+### Wireframe (text, labelled DEMO; anonymized names only)
+
+```
+DEMO · STATIC WIREFRAME · PROPOSAL  (1440×900, two panes; inside the overlay)
+┌ SESSIONS · viewing pc ───────────────────────────────────────────────── esc ┐
+│ source pc · session ses_demo_01 · sent 5 · retained 8 (source window) ·     │
+│ omitted 0 · evicted 0 · sample, not a complete archive                      │
+├ list ─────────────────┬ timeline · observed event span 02:03:10–02:03:35 ──┤
+│ ses_demo_01  5  ▲1  1 │ ts        msg    suggest     decision  ctx agent   │
+│ ses_demo_02  2      0 │ 02:03:10  msg_1  ◆ orch .81  injected  orchestr.   │
+│ ses_demo_03  1  ▲1  0 │ …                                                   │
+│                       ├ fields ─────────────────────────────────────────────┤
+│                       │ suggestion  fixer .77        ▮ recorded · route     │
+│                       │ exec model  —                — not available ·      │
+│                       │                                no validated enrich. │
+│                       ├ permission gate · this session ─────────────────────┤
+│                       │ 02:03:12  ◆ ask:low-score  git status  .68 .95 330ms│
+│                       ├ ROUTER · recommendation, not execution ─────────────┤
+│                       │ classifier jev-1.13-free · fallback not detectable  │
+└───────────────────────┴─────────────────────────────────────────────────────┘
+1024×768: same blocks stacked in one pane; list first, `← sessions` back control.
+```
+
+This is a drawing in text, not a capture. Labelled DEMO mockups or screenshots required by #41 were **not produced** (no browser or dependencies were available in this docs-only lane and none were installed); they remain open for #43.
+
+### Not in the inspector
+
+Task identity or graph, parent/child edges, task outcome, external evidence (#5), allocation of aggregate stats to a session, USD or quota attribution, fallback attempts, exports from this view, any write or control action, and native-app migration.
 
 ## Ticker tape
 
