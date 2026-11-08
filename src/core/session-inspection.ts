@@ -64,7 +64,12 @@ type ParsedSessionId = { sourceId: string | null; session: string };
 function parseSessionId(sessionId: string): ParsedSessionId {
   try {
     const parsed = JSON.parse(sessionId);
-    if (Array.isArray(parsed) && parsed.length === 2 && typeof parsed[0] === "string" && typeof parsed[1] === "string") {
+    if (
+      Array.isArray(parsed) &&
+      parsed.length === 2 &&
+      typeof parsed[0] === "string" &&
+      typeof parsed[1] === "string"
+    ) {
       return { sourceId: parsed[0], session: parsed[1] };
     }
   } catch {
@@ -90,8 +95,10 @@ function notAvailable(reason: string, role?: FieldRole): EvidenceState {
 
 function eventFieldState(event: FlowEvent): EventFieldState {
   const pick = <T>(observeValue: T, routeValue: T): { value: T; kind: "observe" | "route" } | null => {
-    if (event.observe !== null && observeValue !== null && observeValue !== undefined) return { value: observeValue, kind: "observe" };
-    if (event.route !== null && routeValue !== null && routeValue !== undefined) return { value: routeValue, kind: "route" };
+    if (event.observe !== null && observeValue !== null && observeValue !== undefined)
+      return { value: observeValue, kind: "observe" };
+    if (event.route !== null && routeValue !== null && routeValue !== undefined)
+      return { value: routeValue, kind: "route" };
     return null;
   };
 
@@ -102,25 +109,36 @@ function eventFieldState(event: FlowEvent): EventFieldState {
 
   const context = (observeValue: unknown, routeValue: unknown): EvidenceState => {
     const found = pick(observeValue as never, routeValue as never);
-    return found ? { state: "recorded", kind: found.kind, role: "context" } : notAvailable("not in Jev logs", "context");
+    return found
+      ? { state: "recorded", kind: found.kind, role: "context" }
+      : notAvailable("not in Jev logs", "context");
   };
 
   return {
-    message: event.message !== null ? recorded(event.observe?.message !== undefined && event.observe?.message !== null ? "observe" : "route") : notAvailable("not in Jev logs"),
-    prompt: event.prompt !== null ? recorded(event.observe?.prompt !== undefined && event.observe?.prompt !== null ? "observe" : "route") : notAvailable("not in Jev logs"),
+    message:
+      event.message !== null
+        ? recorded(event.observe?.message !== undefined && event.observe?.message !== null ? "observe" : "route")
+        : notAvailable("not in Jev logs"),
+    prompt:
+      event.prompt !== null
+        ? recorded(event.observe?.prompt !== undefined && event.observe?.prompt !== null ? "observe" : "route")
+        : notAvailable("not in Jev logs"),
     suggestion: router(event.observe?.answers?.role.choice ?? null, event.route?.role ?? null),
     confidence: router(event.observe?.answers?.role.confidence ?? null, event.route?.conf ?? null),
     needsOracle: router(event.observe?.answers?.needs_oracle.noul ?? null, event.route?.needs_oracle ?? null),
-    decision: event.route?.decision !== undefined && event.route?.decision !== null
-      ? { state: "recorded", kind: "route", role: "router" }
-      : notAvailable("not in Jev logs", "router"),
-    reason: event.route?.reason !== undefined && event.route?.reason !== null
-      ? { state: "recorded", kind: "route", role: "router" }
-      : notAvailable("not in Jev logs", "router"),
+    decision:
+      event.route?.decision !== undefined && event.route?.decision !== null
+        ? { state: "recorded", kind: "route", role: "router" }
+        : notAvailable("not in Jev logs", "router"),
+    reason:
+      event.route?.reason !== undefined && event.route?.reason !== null
+        ? { state: "recorded", kind: "route", role: "router" }
+        : notAvailable("not in Jev logs", "router"),
     contextAgent: context(event.observe?.agent ?? null, event.route?.agent ?? null),
-    classifierModel: event.observe?.model !== undefined && event.observe?.model !== null
-      ? { state: "recorded", kind: "observe", role: "router" }
-      : notAvailable("not in Jev logs", "router"),
+    classifierModel:
+      event.observe?.model !== undefined && event.observe?.model !== null
+        ? { state: "recorded", kind: "observe", role: "router" }
+        : notAvailable("not in Jev logs", "router"),
     latency: pick(event.observe?.latency_ms ?? null, event.route?.latency_ms ?? null)
       ? { state: "recorded", kind: pick(event.observe?.latency_ms ?? null, event.route?.latency_ms ?? null)!.kind }
       : notAvailable("not in Jev logs"),

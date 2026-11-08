@@ -1,10 +1,11 @@
 import { expect, test } from "bun:test";
 import { aggregate, type DashboardInput, type DashboardState } from "../src/core/aggregate";
 import {
+  type EventFieldState,
+  type EvidenceState,
+  type FieldKey,
   inspectSession,
   listSessions,
-  type EventFieldState,
-  type FieldKey,
   type SessionInspection,
   type SessionListEntry,
 } from "../src/core/session-inspection";
@@ -42,7 +43,9 @@ const route = (extra: Partial<DashboardInput["route"][number]> = {}): DashboardI
   ...extra,
 });
 
-const permission = (extra: Partial<DashboardInput["permissions"][number]> = {}): DashboardInput["permissions"][number] => ({
+const permission = (
+  extra: Partial<DashboardInput["permissions"][number]> = {},
+): DashboardInput["permissions"][number] => ({
   ts: "2026-11-04T02:00:02Z",
   session: "s1",
   commands: ["git status"],
@@ -59,8 +62,7 @@ const baseInput = (): DashboardInput => ({
   malformed: { observe: 0, route: 0, permissions: 0 },
 });
 
-const stateWith = (patch: Partial<DashboardInput>): DashboardState =>
-  aggregate({ ...baseInput(), ...patch });
+const stateWith = (patch: Partial<DashboardInput>): DashboardState => aggregate({ ...baseInput(), ...patch });
 
 const field = (fields: EventFieldState, key: FieldKey): EvidenceState => fields[key]!;
 
@@ -102,8 +104,16 @@ test("execution, tokens, cost and fallback are always not_available", () => {
   const f = inspectSession(state, "s1").fields[0]!;
   expect(field(f, "executionAgent")).toEqual({ state: "not_available", reason: "not in Jev logs", role: "execution" });
   expect(field(f, "executionModel")).toEqual({ state: "not_available", reason: "not in Jev logs", role: "execution" });
-  expect(field(f, "executionProvider")).toEqual({ state: "not_available", reason: "not in Jev logs", role: "execution" });
-  expect(field(f, "executionVariant")).toEqual({ state: "not_available", reason: "not in Jev logs", role: "execution" });
+  expect(field(f, "executionProvider")).toEqual({
+    state: "not_available",
+    reason: "not in Jev logs",
+    role: "execution",
+  });
+  expect(field(f, "executionVariant")).toEqual({
+    state: "not_available",
+    reason: "not in Jev logs",
+    role: "execution",
+  });
   expect(field(f, "tokens")).toEqual({ state: "not_available", reason: "not in Jev logs" });
   expect(field(f, "cost")).toEqual({ state: "not_available", reason: "not in Jev logs" });
   expect(field(f, "fallback")).toEqual({ state: "not_available", reason: "not detectable" });
@@ -196,7 +206,14 @@ test("aggregate stats or presets never produce enriched field state", () => {
     activeDays: 1,
     streak: 1,
     activity: [],
-    models: [{ model: { id: "m", providerID: "p", variant: "v" }, steps: 5, tokens: { input: 100, output: 50, reasoning: 10, cache: { read: 0, write: 0 } }, cost: 0.001 }],
+    models: [
+      {
+        model: { id: "m", providerID: "p", variant: "v" },
+        steps: 5,
+        tokens: { input: 100, output: 50, reasoning: 10, cache: { read: 0, write: 0 } },
+        cost: 0.001,
+      },
+    ],
   };
   const state = stateWith({
     observe: [observe()],
@@ -207,9 +224,7 @@ test("aggregate stats or presets never produce enriched field state", () => {
 
   for (const f of inspectSession(state, "s1").fields) {
     for (const [key, value] of Object.entries(f) as [FieldKey, EvidenceState][]) {
-      if (value.state === "enriched") {
-        expect.fail(`field ${key} was incorrectly classified as enriched`);
-      }
+      expect(value.state).not.toBe("enriched");
     }
   }
 });
