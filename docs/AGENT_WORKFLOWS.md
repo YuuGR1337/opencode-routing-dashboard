@@ -50,7 +50,7 @@ These are anonymized workflow instructions, not captured user/source prompts. Th
 
 | Skill | Cases and intended boundary |
 | --- | --- |
-| branch-and-pr | Evaluation-only work must not create a branch; unrelated dirty work must not be stashed/reset/switched away |
+| branch-and-pr | Evaluation-only work must not create a branch; unrelated dirty work must not be stashed/reset/switched away; an explicit maintainer instruction is recorded as the approval, status stays truthful and the agent never self-approves |
 | tests-first | Parser regression needs a behavioral red first; a live SSE view needs observable readiness and UI evidence |
 | release | Preparation is not publication; no prior tag must not produce an invented comparison ref |
 | evidence-contract-review | Classifier/aggregate facts must not become execution/task claims; sources/ranges must not be conflated |
