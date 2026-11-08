@@ -7,7 +7,7 @@ The UI must be beautiful, original, dynamic and fun, and dense. It is explicitly
 - **Accepted in merged PR [#39](https://github.com/crisesarmiento/opencode-routing-dashboard/pull/39):** the **Lane Bay** contract below (issue [#32](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/32), parent [#23](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/23); maintainer decisions recorded in [the #32 comment](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/32#issuecomment-6714423966)). It is the target for UI work in #33.
 - **#33 has separate [bounded-scope approval](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/33#issuecomment-6715778224).** This implementation applies that slice; the previously shipped UI uses amber-phosphor until #33 lands. This approval does not extend to the deferred items below or the rest of #23.
 - The sections "Previous identity" and the M4a/M4/M9/M11 reviews at the end describe what ships today. They stay as the historical record and as the baseline for any UI work done before #33.
-- **Proposed, pending maintainer approval in [#41](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/41) (parent [#4](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/4)):** the read-only **Sessions inspector** in the section "Sessions inspector" below. It is an exception to the "no new views" rule in "Navigation and terminology" and to the eight-view list under "Concept". Until the maintainer approves it in #41, those statements stay in force and nothing here authorizes code (#42) or captures (#43).
+- **Approved by the maintainer on 2026-11-08 in [#41](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/41) (parent [#4](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/4)):** the read-only **Sessions inspector** in the section "Sessions inspector" below. It is an exception to the "no new views" rule in "Navigation and terminology" and to the eight-view list under "Concept". The exception takes effect when the PR that records it merges. It authorizes only the follow-up work in #42 (model) and #43 (view and captures), each still needing its own start.
 - **Layout measured in isolated Linux Chromium for #33.** The layout table below records DOM measurements against anonymized DEMO inputs, not just static mockup arithmetic. Contrast ratios are **computed with the WCAG formula on token hex pairs; they are not an accessibility audit.** Keyboard, focus, reduced motion and rendering rules are the contract; executed checks and their limits are recorded separately in [VERIFICATION](VERIFICATION.md).
 - Mockups behind this contract are static drawings labeled `DEMO · STATIC MOCKUP · PROPOSAL`, built from the anonymized fixtures. They are referenced from the #32 issue comments and are not committed.
 
@@ -18,7 +18,7 @@ Routing is shown as a live switchboard. A modern look is allowed; the telephone-
 - **Middle – the patch bay**: Jev's suggestion is a dashed *ghost wire* to a role jack (orchestrator, oracle, fixer, explorer, designer). A separate hollow `ctx` ring beside each jack marks the **recorded context agent**. Agreement = the suggestion jack and the ctx ring are the same role. Disagreement is stated in text (`differs`) and drawn as a dotted bracket.
 - **Right rail – aggregate**: one entry per provider/model/variant from the stats file, sized by steps, explicitly **not linked to calls**.
 - **Bottom – the ticker tape**: dense, monospaced event log, filterable, clickable to drill down.
-- Drawers (nav row, keys 1–8): Agreement, Usage, Errors, History, Alerts, Quota, Presets, Export. Proposed in #41 (pending approval): a ninth, Sessions (key 9).
+- Drawers (nav row, keys 1–8): Agreement, Usage, Errors, History, Alerts, Quota, Presets, Export. Approved in #41: a ninth, Sessions (key 9).
 - Not drawn in v1 (evidence limits, see "Evidence-driven deviations"): per-call agent→model cables and fallback sparks.
 
 ## Typography (Lane Bay)
@@ -100,7 +100,7 @@ Top to bottom: **DEMO band → header readouts → source bar → views nav → 
 ## Navigation and terminology
 
 - **Source bar:** keeps its radiogroup behaviour (combined + per-source, arrow keys). Only the look changes: pill radios with state icon + word; `last seen` is shown at ≥1440 and kept in the tooltip at ≤1280.
-- **Views nav:** its own text-tab row with the existing digits 1–8, never wrapping. Alerts shows ▲ plus the count when active. No new views, no sidebar, no Settings, no theme selector. **Exception proposed in #41 (pending approval):** one added view, Sessions (ninth tab, key `9`); see "Sessions inspector". Nothing else in this sentence changes.
+- **Views nav:** its own text-tab row with the existing digits 1–8, never wrapping. Alerts shows ▲ plus the count when active. No new views, no sidebar, no Settings, no theme selector. **Exception approved in #41:** one added view, Sessions (ninth tab, key `9`); see "Sessions inspector". Nothing else in this sentence changes.
 - **Scope strip:** one line that states the viewed source, its state, last event time and the retained count, e.g. `viewing pc · live · last event 02:03:35 UTC · 8 calls retained`, plus file lamps (`observe ok · route ok · permissions ok · stats ok`; `stats missing`; `no files read yet`; `last known:` under link down). Counts must reuse the existing sent/retained values; this adds no metric and no connection-state machine (transport state belongs to #24).
 
 | Term | Contract |
@@ -115,9 +115,9 @@ Top to bottom: **DEMO band → header readouts → source bar → views nav → 
 
 Fields, in order: suggestion + conf; needs oracle; decision + reason; ctx agent; ctx vs suggestion (`same role` / `differs`); classifier + latency; exec agent/model `—`; fallback `not detectable`; tokens/cost `—`. Error rows show `suggestion — classifier failed`, `failure <name>`, `latency <n> ms` with the error icon. The selected call is a 2 px `--sel` bar with a `--panel2` fill in the rail and the ticker. Selected is not the same as focused (see Keyboard).
 
-## Sessions inspector (proposed in #41, pending maintainer approval)
+## Sessions inspector (approved in #41)
 
-Status: **contract only.** Not approved, not implemented, not captured. It is the only addition to the view list, and it revises the "no new views" line (see Contract status). Everything below reuses Lane Bay tokens, type steps, 22 px rows and the 2 px `--sel` focus ring; it adds no colour, font, motion or dependency.
+Status: **approved contract (maintainer decisions of 2026-11-08 in #41), not implemented, not captured.** It is the only addition to the view list, and it revises the "no new views" line (see Contract status). Everything below reuses Lane Bay tokens, type steps, 22 px rows and the 2 px `--sel` focus ring; it adds no colour, font, motion or dependency.
 
 **Purpose.** A read-only place to read what the retained sample holds for one session of one source, in order, with each field's evidence state. It is a reading aid, not a task monitor: it does not say what ran, whether it worked, or that the session is complete.
 
@@ -125,7 +125,7 @@ Status: **contract only.** Not approved, not implemented, not captured. It is th
 
 1. **From a selected event:** a `session` action in the event detail drawer (and key `s` while an event is selected) opens the inspector on that event's session, with the same event highlighted.
 2. **From the Sessions tab (key `9`):** opens the session list for the viewed source.
-3. Both are shown only for the viewed source. In the combined view each session row carries its source id; sessions of different sources are never merged or joined, even if the raw session strings match (the federated id is `JSON.stringify([sourceId, session])`).
+3. Both are shown only for the viewed source. In the combined view the list is shown without first choosing a source, and each session row carries its source id (maintainer decision: friendlier than forcing a source choice); sessions of different sources are never merged or joined, even if the raw session strings match (the federated id is `JSON.stringify([sourceId, session])`).
 
 ### Structure
 
@@ -159,7 +159,7 @@ Method: advance widths summed from the repository's own `InstrumentSans-Regular/
 | Nine tabs (+ Sessions, ≈ 83.5 px) | ≈ 714 px | ≈ 70 % |
 | Nine tabs + active Alerts badge (≈ 30 px estimated: 6 margin + 8 padding + 2 border + digits) | ≈ 745 px | ≈ 73 % |
 
-Result: the model leaves about 280 px of slack at 1024 px, so a ninth tab is expected to fit without wrapping. **Decision: ninth tab `Sessions`, key `9`** (the key handler already accepts `1`…`DRAWERS.length`), **provisional until a browser measurement in #43 confirms no clipping at 1024×768 with the Alerts badge active.** Documented alternative if that measurement fails: no tab; entry only from the event detail `session` action and key `s`, with the list as the first state of the inspector. This is a calculation from font files, not a rendered measurement; the 1280 px tier was not computed (larger than 1024, so it is not the binding case).
+Result: the model leaves about 280 px of slack at 1024 px, so a ninth tab is expected to fit without wrapping. **Decision: ninth tab `Sessions`, key `9`** (the key handler already accepts `1`…`DRAWERS.length`), **approved by the maintainer, subject to a browser measurement in #43 confirms no clipping at 1024×768 with the Alerts badge active.** Maintainer-approved fallback if that measurement fails: no tab; entry only from the event detail `session` action and key `s`, with the list as the first state of the inspector. This is a calculation from font files, not a rendered measurement; the 1280 px tier was not computed (larger than 1024, so it is not the binding case).
 
 ### Three field states (shape and word, never colour alone)
 
