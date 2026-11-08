@@ -1,7 +1,8 @@
 import { type Period } from "../analytics";
-import { type ExchangeStatus, SOURCE_GLYPH } from "../exchange";
+import { type ExchangeStatus, SOURCE_ICON } from "../exchange";
 import type { ExportPlan } from "../export";
 import { PeriodControl } from "./AnalyticsViews";
+import { StateIcon } from "./parts";
 
 const FORMATS = [
   { format: "md", label: "Markdown", file: "routing-report.md" },
@@ -46,7 +47,7 @@ export function ExportPanel({
                 {plan.sources.map((s) => (
                   <span key={s.id} className={s.blocked ? "warn" : "ok"}>
                     <span className="glyph" aria-hidden="true">
-                      {SOURCE_GLYPH[s.status as ExchangeStatus] ?? "○"}
+                      <StateIcon kind={SOURCE_ICON[s.status as ExchangeStatus] ?? "missing"} />
                     </span>
                     {`${s.id} ${s.blocked ?? s.status}  `}
                   </span>

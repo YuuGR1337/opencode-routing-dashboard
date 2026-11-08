@@ -53,10 +53,15 @@ test("ticker rows are complete and unavailable execution fields read —", async
   const state = await fixtureState();
   const html = render(state);
   expect(html.match(/data-row="event"/g)).toHaveLength(state.events.length);
-  for (const head of ["ts", "session", "message", "suggest", "conf", "oracle", "decision", "reason", "ctx agent"])
+  // Lane Bay tiers (DESIGN "Ticker tape"): message, tokens and cost moved to the detail drawer; the two exec
+  // columns became one `exec agent/model` column that reads —.
+  for (const head of ["ts", "session", "suggest", "conf", "oracle", "decision", "reason", "ctx agent"])
     expect(html).toContain(`>${head}<`);
-  for (const head of ["exec agent", "exec model", "classifier", "fallback", "latency", "tokens", "cost", "err"])
+  for (const head of ["exec agent/model", "classifier", "fallback", "latency", "err", "prompt"])
     expect(html).toContain(`>${head}<`);
+  // Header cells only: the call-in-focus readout still lists exec agent / exec model rows.
+  for (const gone of ["message", "tokens", "cost", "exec agent", "exec model"])
+    expect(html).not.toMatch(new RegExp(`<th[^>]*>${gone}</th>`));
   expect(html).toContain("jev-1.13-free");
   expect(html).toContain("TimeoutError");
   expect(html).toContain('data-unavailable="true"');
@@ -108,7 +113,8 @@ test("prompts/min is a lower bound only when events were omitted and the oldest 
 
 test("model rail is aggregate stats explicitly unlinked to calls", async () => {
   const html = render(await fixtureState());
-  expect(html).toContain("aggregate stats");
+  // Lane Bay: panel `AGGREGATE · stats only`, label `NOT LINKED TO CALLS` (caps via CSS).
+  expect(html).toContain("stats only");
   expect(html).toContain("not linked to calls");
   expect(html).toContain("grok-4.7");
   expect(html).toContain("claude-sonnet-5-5");
@@ -245,19 +251,22 @@ test("event detail exposes every field and the raw records", async () => {
 
 test("stylesheet follows DESIGN tokens, local fonts and motion rules", async () => {
   const css = await Bun.file("web/styles.css").text();
+  // Lane Bay graphite tokens (docs/DESIGN.md "Color system"), replacing the amber-phosphor hexes explicitly.
   for (const token of [
-    "#0E0F0C",
-    "#171914",
-    "#2A2D25",
-    "#E8E4D8",
-    "#8C8A80",
-    "#FFB000",
-    "#3CC8B4",
-    "#7BD88F",
-    "#FF5A3C",
+    "#0B0D10",
+    "#10131A",
+    "#171B24",
+    "#232831",
+    "#E7EAEF",
+    "#8590A0",
+    "#5B6473",
+    "#C8F169",
+    "#F2B548",
+    "#5FD9A0",
+    "#FF6B5B",
   ])
     expect(css.toUpperCase()).toContain(token);
-  for (const role of ["#C792EA", "#82AAFF", "#F78C6C"]) expect(css.toUpperCase()).toContain(role);
+  for (const role of ["#E8C26A", "#C792EA", "#3CC8B4", "#82AAFF", "#F78C6C"]) expect(css.toUpperCase()).toContain(role);
   expect(css).toContain("--row: 22px");
   expect(css).toContain("prefers-reduced-motion");
   expect(css).toContain(":focus-visible");

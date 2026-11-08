@@ -40,8 +40,12 @@ async function fixtureState(): Promise<ExchangeState> {
 
 const render = (state: ExchangeState, initialView?: string) =>
   renderToStaticMarkup(<DashboardShell state={state} now={NOW} initialView={initialView} />);
-const ticker = (html: string) =>
-  html.slice(html.indexOf('id="ticker"'), html.indexOf("</section>", html.indexOf('id="ticker"')));
+const ticker = (html: string) => {
+  // #33 places the keyboard target #ticker on event rows, after the alert/filter chrome.
+  const start = html.indexOf('<section class="panel ticker"');
+  expect(start).toBeGreaterThanOrEqual(0);
+  return html.slice(start, html.indexOf("</section>", start));
+};
 
 test("ticker exposes active source and distinct classifier and execution evidence with an alerts panel button", async () => {
   const html = ticker(render(await fixtureState()));

@@ -5,6 +5,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+### Changed
+- Apply the approved Lane Bay identity to the existing switchboard: graphite surfaces, distinct selection and warning colors, role shapes, separate navigation/scope rows, responsive ticker columns and compact call focus. Keep aggregate statistics separate from calls, preserve existing source/filter/replay behavior and expose detailed browser-payload rejection counts in Errors (#33).
+
 ### Fixed
 - Stop setting `OPENCODE_DISABLE_LSP_DOWNLOAD` for the stats child (and strip any inherited value): the token is absent from the OpenCode 2.2.5 and 2.2.6 binaries, so it was not a verified safeguard.
 

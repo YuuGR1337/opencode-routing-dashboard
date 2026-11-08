@@ -1,5 +1,9 @@
 # PLAN
 
+## Lane Bay bounded identity (#33)
+
+- [x] Apply the accepted #39 DESIGN contract to the existing shell, source/navigation/scope rows, switchboard and ticker, with compact focus and responsive columns at both required sizes. Maintainer [scope approval](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/33#issuecomment-6715778224) includes detailed rejected-payload counts in Errors and the compact intake summary in the ticker. Local typecheck/lint/283 tests/build, 208 browser checks, eight reviewed DEMO captures, measured layout, keyboard/actual reduced motion and [implementation-head CI](https://github.com/crisesarmiento/opencode-routing-dashboard/actions/runs/42439710210/job/128606110666) pass. [PR #40](https://github.com/crisesarmiento/opencode-routing-dashboard/pull/40) records final-head CI after this documentation-only sign-off; maintainer review/merge remains separate. Source/filter/selection/replay semantics and aggregate range separation are preserved; no new project dependencies, telemetry, connection-state machine, Settings or persistent inspector. #23 remains open; #24/#25/#27/#31 remain separate.
+
 ## Agent workflow guidance and product direction
 
 - [x] Improve the three existing skills, add evidence-contract review and isolated UI verification, validate dry-run case structure and review representative reasoning cases, and document the roadmap/desktop direction. Local typecheck/lint/256 tests/build and implementation-head CI passed; evidence is in VERIFICATION and PR #30. Scope is contributor guidance, tests and documentation only: no runtime/UI changes, external skill installation, feature approval or release. The documentation sign-off reruns final-head CI; maintainer review/merge remains separate.

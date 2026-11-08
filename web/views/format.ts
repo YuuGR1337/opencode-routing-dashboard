@@ -1,4 +1,5 @@
 import type { Source } from "../../src/core/aggregate";
+import type { StateKind } from "./parts";
 
 export const ROLES = ["orchestrator", "oracle", "fixer", "explorer", "designer"] as const;
 export type Role = (typeof ROLES)[number];
@@ -9,7 +10,14 @@ export const SOURCES: Source[] = ["observe", "route", "permissions"];
 export const RAIL_CALLS = 10;
 export const RENDER_LIMIT = 300;
 
-export const STATUS_GLYPH = { ok: "●", missing: "○", error: "▲", unavailable: "○", disabled: "○" } as const;
+/** File and stats states map onto the DESIGN state icons: ok is live, everything not read is a hollow ring. */
+export const STATUS_ICON: Record<"ok" | "missing" | "error" | "unavailable" | "disabled", StateKind> = {
+  ok: "live",
+  missing: "missing",
+  error: "error",
+  unavailable: "missing",
+  disabled: "missing",
+};
 export const STATUS_CLASS = { ok: "ok", missing: "warn", error: "err", unavailable: "warn", disabled: "dim" } as const;
 
 const pad = (n: number, w = 2) => String(n).padStart(w, "0");

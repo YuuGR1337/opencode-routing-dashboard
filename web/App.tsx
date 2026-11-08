@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DashboardState, FlowEvent } from "../src/core/aggregate";
 import { ALERT_LABEL, alertsView, DEFAULT_PERIOD, type Period, presetView, quotaView } from "./analytics";
@@ -15,9 +14,9 @@ import { EventDetail } from "./views/EventDetail";
 import { ExportPanel } from "./views/ExportView";
 import { FilterBar, isFiltered } from "./views/FilterBar";
 import { FlowView, type ReplayView } from "./views/FlowView";
-import { fmtClock, fmtNum, fmtTs, pct, RENDER_LIMIT, SOURCES, STATUS_CLASS, STATUS_GLYPH } from "./views/format";
+import { fmtClock, fmtNum, fmtTs, pct, RENDER_LIMIT, SOURCES, STATUS_CLASS, STATUS_ICON } from "./views/format";
 import { HistoryView } from "./views/HistoryView";
-import { Drawer } from "./views/parts";
+import { Drawer, StateIcon } from "./views/parts";
 import { SourceBar } from "./views/SourceBar";
 import { UsageView } from "./views/UsageView";
 
@@ -119,23 +118,44 @@ function Readout({
   );
 }
 
-function SourceHealth({
+/** Browser time zone name for the tooltip; the clock itself is never relabeled. */
+const localZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || "unknown zone";
+
+/**
+ * Scope strip: the viewed source, its state, the last event time and the retained count, then file lamps.
+ * It reuses existing values and adds no metric. Intake counters live in the ticker title.
+ */
+function ScopeStrip({
   state,
-  drawers,
-  rejected,
+  viewing,
+  sourceStatus,
   staleNote,
   combinedExchange,
+  connected,
 }: {
   state: DashboardState;
-  drawers: ReactNode;
-  rejected?: number;
+  viewing: string | null;
+  sourceStatus: string | null;
   staleNote: string | null;
   combinedExchange: boolean;
+  connected?: boolean;
 }) {
-  const { sources, statsStatus, errors, window: win } = state;
-  const m = errors.malformed;
+  const { sources, statsStatus, window: win, events } = state;
+  const last = events[events.length - 1];
+  const scope = [
+    viewing,
+    sourceStatus,
+    last ? `last event ${fmtClock(last.ts)}` : null,
+    `${win.events.retained} calls retained`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   return (
-    <div className="sources" role="status">
+    <div className="scope-strip" role="status">
+      <span className="viewing" title={`Times are shown in this browser's local time (${localZone()}).`}>
+        {scope}
+      </span>
+      {connected === false ? <span className="src dim">last known:</span> : null}
       {sources ? (
         SOURCES.map((name) => {
           const s = sources[name];
@@ -146,7 +166,7 @@ function SourceHealth({
               title={`${s.path}${s.detail ? ` (${s.detail})` : ""}`}
             >
               <span className="glyph" aria-hidden="true">
-                {STATUS_GLYPH[s.status]}
+                <StateIcon kind={STATUS_ICON[s.status]} />
               </span>
               {name} {s.status}
               {s.detail ? ` · ${s.detail}` : ""}
@@ -154,30 +174,21 @@ function SourceHealth({
           );
         })
       ) : (
-        <span className="src dim">○ {combinedExchange ? "source health above" : "waiting for sources"}</span>
+        <span className="src dim">
+          <span className="glyph" aria-hidden="true">
+            <StateIcon kind="missing" />
+          </span>
+          {combinedExchange ? "source health above" : "waiting for sources"}
+        </span>
       )}
       <span className={`src ${statsStatus ? STATUS_CLASS[statsStatus.status] : "dim"}`}>
         <span className="glyph" aria-hidden="true">
-          {statsStatus ? STATUS_GLYPH[statsStatus.status] : "○"}
+          <StateIcon kind={statsStatus ? STATUS_ICON[statsStatus.status] : "missing"} />
         </span>
         {`stats ${statsStatus?.status ?? (combinedExchange ? "per source" : "pending")}`}
         {statsStatus?.detail ? ` · ${statsStatus.detail}` : ""}
       </span>
       {staleNote ? <span className="src warn">{staleNote}</span> : null}
-      <span className="src dim">
-        {`malformed (process lifetime) observe ${m.observe} · route ${m.route} · permissions ${m.permissions}`}
-      </span>
-      <span className="src dim">{`permissions newest ${win.permissions.sent} of ${win.permissions.retained} retained`}</span>
-      {rejected === undefined ? null : (
-        <span
-          className={`src ${rejected > 0 ? "warn" : "dim"}`}
-          data-rejected={rejected}
-          title="Browser payloads that failed validation and were dropped since this page loaded"
-        >
-          {`rejected payloads ${rejected}`}
-        </span>
-      )}
-      <span className="spacer">{drawers}</span>
     </div>
   );
 }
@@ -497,7 +508,7 @@ export function DashboardShell({
   }, [vs.events, filtered]);
 
   const drawers = (
-    <nav className="drawers" aria-label="views">
+    <nav className="views-nav" aria-label="views">
       {DRAWERS.map((d, i) => (
         <button
           key={d.name}
@@ -527,6 +538,16 @@ export function DashboardShell({
     src && !view.waiting && src.status !== "live"
       ? `${src.id} ${src.status}${src.lastSeenAt ? ` · last seen ${fmtClock(src.lastSeenAt)}` : ""} · showing last retained state`
       : null;
+  // Stats are per source. Combined carries one source's stats only when exactly one is configured (federation);
+  // with several, no source is named and nothing is summed.
+  const onlySource = state.exchange?.sources.length === 1 ? state.exchange.sources[0] : undefined;
+  const aggregateSource = !state.exchange
+    ? "source opencode stats --json"
+    : view.source
+      ? `source ${view.source.id}`
+      : onlySource
+        ? `source ${onlySource.id}`
+        : "combined view · stats stay per source, nothing summed";
   const classes = ["app", demo ? "has-demo" : "", state.exchange ? "has-exchange" : ""].filter(Boolean).join(" ");
   return (
     <div className={classes}>
@@ -537,7 +558,7 @@ export function DashboardShell({
       ) : null}
       <header className="head">
         <div className="brand">
-          <span className="brand-name">routing exchange</span>
+          <span className="brand-name">Routing exchange</span>
           <span className="brand-sub">opencode · jev</span>
         </div>
         <div className="readouts">
@@ -575,27 +596,22 @@ export function DashboardShell({
           {connected === undefined ? null : (
             <span className={`link ${connected ? "ok" : "err"}`}>
               <span className="glyph" aria-hidden="true">
-                {connected ? "●" : "▲"}
+                <StateIcon kind={connected ? "live" : "down"} />
               </span>
               {connected ? "link live" : "link down"}
             </span>
           )}
         </div>
       </header>
-      {state.exchange ? (
-        <SourceBar
-          sources={state.exchange.sources}
-          selected={view.id}
-          sentEvents={vs.events.length}
-          onSelect={selectView}
-        />
-      ) : null}
-      <SourceHealth
+      {state.exchange ? <SourceBar sources={state.exchange.sources} selected={view.id} onSelect={selectView} /> : null}
+      {drawers}
+      <ScopeStrip
         state={vs}
-        drawers={drawers}
-        rejected={rejected}
+        viewing={state.exchange ? `viewing ${view.id}` : null}
+        sourceStatus={state.exchange && src ? src.status : null}
         staleNote={staleNote}
         combinedExchange={Boolean(state.exchange && view.id === COMBINED)}
+        connected={connected}
       />
       <FlowView
         state={vs}
@@ -606,6 +622,8 @@ export function DashboardShell({
         filterNote={filterNote}
         notice={notice}
         replay={replayView}
+        rejected={rejected}
+        aggregateSource={aggregateSource}
         onReplayStart={startReplay}
         waiting={view.waiting && src ? { id: src.id, status: src.status, detail: src.detail } : undefined}
         filterBar={
@@ -649,7 +667,7 @@ export function DashboardShell({
         >
           {drawerView.name === "agreement" ? <AgreementView state={vs} /> : null}
           {drawerView.name === "usage" ? <UsageView state={vs} /> : null}
-          {drawerView.name === "errors" ? <ErrorsView state={vs} /> : null}
+          {drawerView.name === "errors" ? <ErrorsView state={vs} rejected={rejected} /> : null}
           {drawerView.name === "history" ? <HistoryView state={vs} /> : null}
           {drawerView.name === "alerts" ? <AlertsPanel view={alerts} now={now} /> : null}
           {drawerView.name === "quota" ? <QuotaPanel view={quotaView(state, view.id, now)} /> : null}

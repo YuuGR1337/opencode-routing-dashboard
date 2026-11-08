@@ -87,9 +87,10 @@ test("source bar lists combined plus every configured source with health that is
   expect(html).toContain("last seen");
   expect(html).toContain("idle timeout");
   expect(html).toContain("tui");
-  // Stale and connecting use different glyphs from live, so colour is never the only cue.
-  expect(html).toMatch(/data-source="pc"[\s\S]*?●/);
-  expect(html).toMatch(/data-source="orca"[\s\S]*?◇/);
+  // Accepted DESIGN #39: live disc, stale half-disc and connecting dashed ring, always with status words.
+  expect(html).toMatch(/data-source="pc"[^]*?data-state="live"/);
+  expect(html).toMatch(/data-source="orca"[^]*?data-state="stale"/);
+  expect(html).toMatch(/data-source="local"[^]*?data-state="connecting"/);
 });
 
 test("combined view shows tagged events with a source column and a source filter", async () => {

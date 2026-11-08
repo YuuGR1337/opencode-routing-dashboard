@@ -1,6 +1,7 @@
 import type { FlowEvent } from "../../src/core/aggregate";
 import { clientText, evidence } from "../exchange";
 import { fmt2, fmtTs } from "./format";
+import { StateIcon } from "./parts";
 
 export function EventDetail({
   event,
@@ -84,8 +85,8 @@ export function EventDetail({
               <span className="t-ctx">{e.contextAgent ?? "—"}</span>
               {e.errors.length ? (
                 <span className="err" title={e.errors.join(" | ")}>
-                  <span className="glyph" aria-label="error">
-                    ▲
+                  <span className="glyph" role="img" aria-label="error">
+                    <StateIcon kind="error" />
                   </span>
                 </span>
               ) : null}
