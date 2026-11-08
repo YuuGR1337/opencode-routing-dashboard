@@ -1,5 +1,9 @@
 # PLAN
 
+## Session inspection model (#42)
+
+- [x] Add a pure `src/core/session-inspection.ts` model over retained evidence, with tests-first coverage for federated source isolation, eviction/omission coverage, permissions without events, unknown sessions, unavailable execution fields and input immutability. No ingestion/schema change, no UI, no aggregate attribution to sessions. Local typecheck, lint and full test suite pass.
+
 ## Lane Bay bounded identity (#33)
 
 - [x] Apply the accepted #39 DESIGN contract to the existing shell, source/navigation/scope rows, switchboard and ticker, with compact focus and responsive columns at both required sizes. Maintainer [scope approval](https://github.com/crisesarmiento/opencode-routing-dashboard/issues/33#issuecomment-6715778224) includes detailed rejected-payload counts in Errors and the compact intake summary in the ticker. Local typecheck/lint/283 tests/build, 208 browser checks, eight reviewed DEMO captures, measured layout, keyboard/actual reduced motion and [implementation-head CI](https://github.com/crisesarmiento/opencode-routing-dashboard/actions/runs/42439710210/job/128606110666) pass. [PR #40](https://github.com/crisesarmiento/opencode-routing-dashboard/pull/40) records final-head CI after this documentation-only sign-off; maintainer review/merge remains separate. Source/filter/selection/replay semantics and aggregate range separation are preserved; no new project dependencies, telemetry, connection-state machine, Settings or persistent inspector. #23 remains open; #24/#25/#27/#31 remain separate.
