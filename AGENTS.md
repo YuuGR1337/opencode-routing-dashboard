@@ -5,7 +5,7 @@ Rules for every coding agent (OpenCode, Codex, Claude Code, Cursor). If a task c
 ## Skills
 Process lives in `.agents/skills/<name>/SKILL.md`: `branch-and-pr`, `tests-first`, `release`, `evidence-contract-review`, `ui-verification`.
 Use the matching procedure when its task applies; discovery depends on harness/version. If it is not discovered, read the file explicitly. Do not duplicate skills across harness directories without checking precedence. Details and dry-run evaluation cases: [agent workflows](docs/AGENT_WORKFLOWS.md).
-Read-only research and `Under evaluation` proposals do not authorize implementation, branches, installs, or publication. Confirm the approved scope before using the branch/PR workflow.
+Read-only research and `Under evaluation` proposals do not authorize implementation, branches, installs, or publication. Confirm the approved scope before using the branch/PR workflow. Only the maintainer approves: an agent records `Decision: Approved` solely to reflect an explicit maintainer instruction, and keeps project `Status` truthful (`In Progress` while working, never `Done` before merge).
 
 ## Git workflow
 - Default/integration branch: `develop`. All PRs target `develop` (squash-merge). `main` = releases only (develop → main PR + `vX.Y.Z` tag, maintainer only).

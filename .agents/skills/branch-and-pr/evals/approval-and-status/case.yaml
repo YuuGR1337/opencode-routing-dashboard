@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: approval-and-status
+expected_outcome: |
+  The agent treats the maintainer's explicit instruction as the approval and
+  records it in the issue, moves status to In Progress when starting, posts
+  progress comments, and does not mark the issue Done or approve other issues.

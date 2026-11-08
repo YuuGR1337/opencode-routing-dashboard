@@ -27,6 +27,13 @@ linked to this repository. It tracks three independent fields:
 | Decision | `Under evaluation` does not authorize implementation; `Approved` records an explicit scope decision. |
 | Work type | `feat`, `fix`, `chore`, `test`, `docs`, `refactor`, or `research`. |
 
+Changing the fields follows [CONTRIBUTING](../CONTRIBUTING.md#issues-and-planning):
+the maintainer decides `Approved`; the item moves to `In Progress` when work
+starts, stays truthful while it is blocked or stopped (`Todo`), and reaches
+`Done` only after acceptance and merge or documented research closure. A
+progress comment in the issue accompanies each milestone. Project fields are
+edited by hand or with `gh project item-edit`; no automation sets approval.
+
 Issue labels classify work (`bug`, `task`, `enhancement`, `documentation`, etc.).
 Project fields do not replace the issue's goal, criteria, scope and dependencies.
 Native auto-add is enabled for open issues from this repository, with new items
