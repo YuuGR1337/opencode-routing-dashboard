@@ -95,7 +95,7 @@ No explicit fallback event in logs; agent-per-step is not in Jev logs (only the 
 - Quota subscriptions (Claude Pro, ChatGPT Plus, Grok or custom labels) have user-supplied limits only, never invented defaults. Rolling 5 h and weekly token/message estimates require timestamped attributable records or stats exactly covering the requested window/metric. Partial/unknown evidence is explicit; never difference sliding stats or sum overlapping snapshots. Subscription cost zero is not quota zero.
 - Alerts derive only from explicit rate-limit, quota-exhaustion or fallback evidence, with configurable hold/debounce and minimum repeat interval. Unknown never fires. UI ticker/panel are always available; desktop notifications are opt-in (`notify-send` Linux, `osascript` macOS), argument-array based, and failures cannot crash ingestion.
 
-### Sessions inspector (approved in #41, not implemented)
+### Sessions inspector (approved in #41, implemented in #43)
 Read-only view over retained evidence for one session of one source. Presentation is in [DESIGN](DESIGN.md#sessions-inspector-approved-in-41); this section holds the evidence rules.
 - **Inputs:** only data the dashboard already receives: sent events, sent permission records, and the `window` counters. No new source, endpoint, file read, stats call or ingestion change. Session identity is the federated string (`JSON.stringify([sourceId, session])`) for events and permissions alike; sessions of different sources are never joined.
 - **Entry:** from a selected event or from a per-source session list. Replay reuses the existing client cursor; the inspector adds no transport and no durable history.

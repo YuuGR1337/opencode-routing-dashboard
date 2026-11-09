@@ -214,7 +214,7 @@ function PatchBay({
 }
 
 /** Two-line call in focus for widths where the full readout is hidden. Only recorded fields; exec stays —. */
-function CompactFocus({ event: e }: { event: FlowEvent }) {
+export function CompactFocus({ event: e }: { event: FlowEvent }) {
   const comparable = isRole(e.suggestion) && isRole(e.contextAgent);
   const same = comparable && e.suggestion === e.contextAgent;
   const failed = e.errors.length > 0;
@@ -528,7 +528,9 @@ function Ticker({
             {`intake: malformed ${m.observe + m.route + m.permissions}${rejected === undefined ? "" : ` · rejected ${rejected}`}`}
           </span>
         </span>
-        <span className="keys dim">/ search · f filters · j/k row · enter detail · 1-8 views · esc close</span>
+        <span className="keys dim">
+          / search · f filters · j/k row · enter detail · s session · 1-9 views · esc close
+        </span>
       </h2>
       {notice ? (
         <p className="notice" role="status" data-evicted="true">
@@ -642,6 +644,7 @@ export function FlowView({
   waiting,
   rejected,
   aggregateSource,
+  overlay,
   onSelect,
 }: {
   state: DashboardState;
@@ -653,6 +656,8 @@ export function FlowView({
   aggregateSource?: string;
   /** Browser payloads dropped by validation since page load; omit to hide the counter. */
   rejected?: number;
+  /** Panel laid over the stage only (the Sessions inspector); header, nav, scope strip and ticker stay visible. */
+  overlay?: ReactNode;
   filterBar: ReactNode;
   filterNote: string | null;
   /** Announcement shown above the ticker filters (selected event evicted). */
@@ -687,6 +692,7 @@ export function FlowView({
           waiting={waiting}
         />
         <ModelRail state={state} source={aggregateSource} />
+        {overlay}
       </main>
       <Ticker
         state={state}

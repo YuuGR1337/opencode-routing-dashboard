@@ -7,6 +7,7 @@ import { exportPlan } from "./export";
 import { EMPTY_FILTERS, type FlowFilters, filterEvents } from "./filters";
 import { nextSpeed, replayCoverage, replayDelay, type Speed, sessionTimeline, stepIndex } from "./replay";
 import { nearestSurvivor, type OptionMemory, rememberOptions, sameOptions } from "./selection";
+import { escapeAction, moveRow, sessionEntry } from "./sessions";
 import { AgreementView } from "./views/AgreementView";
 import { AlertsPanel, PresetsPanel, QuotaPanel } from "./views/AnalyticsViews";
 import { ErrorsView } from "./views/ErrorsView";
@@ -17,6 +18,7 @@ import { FlowView, type ReplayView } from "./views/FlowView";
 import { fmtClock, fmtNum, fmtTs, pct, RENDER_LIMIT, SOURCES, STATUS_CLASS, STATUS_ICON } from "./views/format";
 import { HistoryView } from "./views/HistoryView";
 import { Drawer, StateIcon } from "./views/parts";
+import { SessionsPanel, SessionsView } from "./views/SessionsView";
 import { SourceBar } from "./views/SourceBar";
 import { UsageView } from "./views/UsageView";
 
@@ -33,8 +35,16 @@ const DRAWERS = [
   { name: "quota", title: "Quota", scope: "your configured limits · rolling 5 h and weekly estimates" },
   { name: "presets", title: "Presets", scope: "recorded or observed preset intervals · chosen period" },
   { name: "export", title: "Export", scope: "Markdown or CSV report · selected source and period" },
+  {
+    name: "sessions",
+    title: "Sessions",
+    scope: "retained sample · one session of one source · read-only, not a task monitor",
+  },
 ] as const;
 export type DrawerName = (typeof DRAWERS)[number]["name"];
+/** Digit keys open the views in nav order: `1` Agreement … `9` Sessions. */
+export const drawerForKey = (key: string): DrawerName | null =>
+  /^[1-9]$/.test(key) ? (DRAWERS[Number(key) - 1]?.name ?? null) : null;
 
 function useArrivals(events: FlowEvent[], ready: boolean, viewId: string) {
   const seen = useRef<Set<string> | null>(null);
@@ -206,6 +216,11 @@ const seedReplay = (events: FlowEvent[]): ReplayState | null => {
   const first = focus ? sessionTimeline(events, focus.session)[0] : undefined;
   return focus && first ? { session: focus.session, cursor: first.id, playing: false, speed: 1 } : null;
 };
+const seedSession = (events: FlowEvent[], session: string, event?: string): ReplayState | null => {
+  const timeline = sessionTimeline(events, session);
+  const at = timeline.find((e) => e.id === event) ?? timeline[0];
+  return at ? { session, cursor: at.id, playing: false, speed: 1 } : null;
+};
 const focusTicker = () => setTimeout(() => document.getElementById("ticker")?.focus(), 0);
 
 export function DashboardShell({
@@ -216,6 +231,7 @@ export function DashboardShell({
   initialDrawer = null,
   initialView = COMBINED,
   initialReplay = false,
+  initialSession,
   initialPeriod = DEFAULT_PERIOD,
   now: nowOverride,
 }: {
@@ -230,6 +246,8 @@ export function DashboardShell({
   initialView?: string;
   /** Starts a replay of the newest call's session on first render (screenshots and smoke tests). */
   initialReplay?: boolean;
+  /** Opens the Sessions inspector on this session (federated id), optionally on one of its events. */
+  initialSession?: { session: string; event?: string };
   /** Period of the preset comparison on first render (screenshots and smoke tests). */
   initialPeriod?: Period;
   /** Fixed page clock for tests and screenshots. Without it the clock ticks every 5 s. */
@@ -238,12 +256,18 @@ export function DashboardShell({
   const [viewId, setViewId] = useState(initialView);
   const view = resolveView(state, viewId);
   const vs = view.state;
-  const [replay, setReplay] = useState<ReplayState | null>(() => (initialReplay ? seedReplay(vs.events) : null));
-  const [selected, setSelected] = useState<string | null>(() =>
-    initialReplay ? (seedReplay(vs.events)?.cursor ?? null) : null,
-  );
+  const seeded = () =>
+    initialSession
+      ? seedSession(vs.events, initialSession.session, initialSession.event)
+      : initialReplay
+        ? seedReplay(vs.events)
+        : null;
+  const [replay, setReplay] = useState<ReplayState | null>(seeded);
+  const [selected, setSelected] = useState<string | null>(() => seeded()?.cursor ?? null);
+  // The inspected session (federated id). Null shows only the session list.
+  const [inspected, setInspected] = useState<string | null>(initialSession?.session ?? null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [drawer, setDrawer] = useState<DrawerName | null>(initialDrawer);
+  const [drawer, setDrawer] = useState<DrawerName | null>(initialSession ? "sessions" : initialDrawer);
   const [filters, setFilters] = useState<FlowFilters>(EMPTY_FILTERS);
   const [known, setKnown] = useState<OptionMemory | undefined>(undefined);
   const [notice, setNotice] = useState<string | null>(null);
@@ -283,10 +307,20 @@ export function DashboardShell({
         }
       : undefined;
 
-  const live = useRef({ rows, selected, drawer, detailOpen, replay, timeline, cursorIdx, events: vs.events });
+  const live = useRef({
+    rows,
+    selected,
+    drawer,
+    detailOpen,
+    replay,
+    timeline,
+    cursorIdx,
+    events: vs.events,
+    inspected,
+  });
   const opener = useRef<HTMLElement | null>(null);
   useEffect(() => {
-    live.current = { rows, selected, drawer, detailOpen, replay, timeline, cursorIdx, events: vs.events };
+    live.current = { rows, selected, drawer, detailOpen, replay, timeline, cursorIdx, events: vs.events, inspected };
   });
 
   const restoreFocus = () => {
@@ -303,10 +337,31 @@ export function DashboardShell({
   const openDrawer = (name: DrawerName) => {
     if (live.current.drawer === null && !live.current.detailOpen) remember();
     setDetailOpen(false);
+    setInspected(null);
     setDrawer(name);
   };
+  /**
+   * Opens the Sessions inspector on one session. The replay cursor is the one cursor: it moves to the given event
+   * (or the session's first retained event) and pauses, so the timeline, the ticker selection and Call in focus agree.
+   */
+  const openSession = (session: string, event?: string) => {
+    if (live.current.drawer === null && !live.current.detailOpen) remember();
+    const timeline = sessionTimeline(live.current.events, session);
+    const at = timeline.find((e) => e.id === event) ?? timeline[0];
+    if (at) {
+      setReplay((r) => ({ session, cursor: at.id, playing: false, speed: r?.speed ?? 1 }));
+      setSelected(at.id);
+    }
+    setNotice(null);
+    setDetailOpen(false);
+    setInspected(session);
+    setDrawer("sessions");
+  };
+  /** Esc in the detail: back to the list, keeping the session's row as the place to land. */
+  const backToList = () => setInspected(null);
   const closeOverlay = () => {
     setDrawer(null);
+    setInspected(null);
     setDetailOpen(false);
     setNotice(null);
     // Wait for the overlay to unmount before moving focus.
@@ -360,6 +415,7 @@ export function DashboardShell({
     setViewId(id);
     setSelected(null);
     setDetailOpen(false);
+    setInspected(null);
     setReplay(null);
     setKnown(undefined);
     setNotice(null);
@@ -371,6 +427,8 @@ export function DashboardShell({
     closeOverlay,
     toggleDrawer,
     openDetail,
+    openSession,
+    backToList,
     focusEvent,
     startReplay,
     stopReplay,
@@ -378,20 +436,35 @@ export function DashboardShell({
     togglePlay,
   });
   useEffect(() => {
-    actions.current = { closeOverlay, toggleDrawer, openDetail, focusEvent, startReplay, stopReplay, step, togglePlay };
+    actions.current = {
+      closeOverlay,
+      toggleDrawer,
+      openDetail,
+      openSession,
+      backToList,
+      focusEvent,
+      startReplay,
+      stopReplay,
+      step,
+      togglePlay,
+    };
   });
 
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
       if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
-      const { rows: list, selected: sel, drawer: dr, detailOpen: det, replay: rp } = live.current;
+      const { rows: list, selected: sel, drawer: dr, detailOpen: det, replay: rp, inspected: insp } = live.current;
+      const inInspector = dr === "sessions" && insp !== null;
       if (ev.key === "Escape") {
         if (isTyping(ev.target)) {
           (ev.target as HTMLElement).blur();
           return;
         }
-        if (dr !== null || det) actions.current.closeOverlay();
-        else if (rp) actions.current.stopReplay();
+        if (dr !== null || det) {
+          // Inspector: detail -> list -> close. Every other overlay closes at once.
+          if (escapeAction(dr, insp) === "to-list") actions.current.backToList();
+          else actions.current.closeOverlay();
+        } else if (rp) actions.current.stopReplay();
         return;
       }
       if (isTyping(ev.target)) return;
@@ -401,15 +474,28 @@ export function DashboardShell({
       } else if (ev.key === "f") {
         ev.preventDefault();
         document.getElementById("flt-role")?.focus();
-      } else if (ev.key >= "1" && ev.key <= String(DRAWERS.length)) {
-        actions.current.toggleDrawer(DRAWERS[Number(ev.key) - 1]!.name);
+      } else if (drawerForKey(ev.key) !== null) {
+        actions.current.toggleDrawer(drawerForKey(ev.key)!);
+      } else if (ev.key === "s") {
+        // From the ticker or the event detail only: the inspector opens on the selected event's session.
+        if (dr !== null) return;
+        const target = sessionEntry(live.current.events, sel);
+        if (!target) return;
+        ev.preventDefault();
+        actions.current.openSession(target.session, target.event);
       } else if (ev.key === "r") {
         if (dr !== null) return;
         if (rp) actions.current.stopReplay();
         else actions.current.startReplay();
+      } else if (inInspector && (ev.key === "j" || ev.key === "k" || ev.key === "," || ev.key === ".")) {
+        // The inspector's timeline shares the replay cursor: moving a row selects it and pauses, as elsewhere.
+        const ids = sessionTimeline(live.current.events, insp!).map((e) => e.id);
+        const next = moveRow(ids, sel, ev.key === "j" || ev.key === "." ? 1 : -1);
+        ev.preventDefault();
+        if (next) actions.current.focusEvent(next);
       } else if (
         rp &&
-        dr === null &&
+        (dr === null || inInspector) &&
         (ev.key === "p" || ev.key === "," || ev.key === "." || ev.key === "[" || ev.key === "]")
       ) {
         ev.preventDefault();
@@ -532,7 +618,9 @@ export function DashboardShell({
   );
   const r = vs.readouts;
   const a = vs.agreement;
-  const drawerView = DRAWERS.find((d) => d.name === drawer);
+  // Sessions is a panel over the stage, not a drawer: it has no drawer chrome and no entry in the drawer tabs.
+  const drawerView = DRAWERS.find((d) => d.name === drawer && d.name !== "sessions");
+  const drawerTabs = DRAWERS.filter((d) => d.name !== "sessions");
   const src = view.source;
   const staleNote =
     src && !view.waiting && src.status !== "live"
@@ -655,13 +743,33 @@ export function DashboardShell({
           </>
         }
         onSelect={openDetail}
+        overlay={
+          drawer === "sessions" ? (
+            <SessionsPanel focus={selectedEvent ?? rows[0]} onClose={closeOverlay}>
+              <SessionsView
+                state={vs}
+                viewSource={view.source?.id ?? null}
+                hasExchange={Boolean(state.exchange)}
+                inspected={inspected}
+                selected={selected}
+                replay={
+                  replay && replay.session === inspected ? { playing: replay.playing, speed: replay.speed } : null
+                }
+                lastKnown={connected === false ? "link down · showing last retained state" : staleNote}
+                onOpen={(session) => actions.current.openSession(session)}
+                onBack={() => actions.current.backToList()}
+                onSelect={(id) => actions.current.focusEvent(id)}
+              />
+            </SessionsPanel>
+          ) : undefined
+        }
       />
       {drawerView ? (
         <Drawer
           name={drawerView.name}
           title={drawerView.title}
           scope={drawerView.scope}
-          tabs={DRAWERS}
+          tabs={drawerTabs}
           onTab={(name) => openDrawer(name as DrawerName)}
           onClose={closeOverlay}
         >
@@ -692,6 +800,7 @@ export function DashboardShell({
             events={vs.events}
             retained={vs.window.events.retained}
             onSelect={focusEvent}
+            onSession={() => openSession(selectedEvent.session, selectedEvent.id)}
           />
         </aside>
       ) : null}

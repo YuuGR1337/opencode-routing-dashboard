@@ -1,5 +1,6 @@
 import type { FlowEvent } from "../../src/core/aggregate";
 import { clientText, evidence } from "../exchange";
+import { sessionTimeline } from "../replay";
 import { fmt2, fmtTs } from "./format";
 import { StateIcon } from "./parts";
 
@@ -8,6 +9,7 @@ export function EventDetail({
   events,
   retained,
   onSelect,
+  onSession,
 }: {
   event: FlowEvent;
   /** Sent events, used for the session timeline. Defaults to just this event. */
@@ -15,6 +17,8 @@ export function EventDetail({
   /** Retained events overall, to say how much of the session may be missing. */
   retained?: number;
   onSelect?: (id: string) => void;
+  /** Opens the read-only Sessions inspector on this event's session. */
+  onSession?: () => void;
 }) {
   const tag = evidence(event);
   const tagged = tag.sourceId !== undefined || tag.client !== undefined || tag.directory !== undefined;
@@ -50,9 +54,7 @@ export function EventDetail({
     ["latency", event.latency === null ? null : `${event.latency} ms`, false],
     ["errors", event.errors.length ? event.errors.join(" | ") : null, false],
   ];
-  const timeline = (events ?? [event])
-    .filter((e) => e.session === event.session)
-    .sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts) || (a.id < b.id ? -1 : 1));
+  const timeline = sessionTimeline(events ?? [event], event.session);
   const { observe: _o, route: _r, ...derived } = event;
   return (
     <div className="detail-body">
@@ -68,6 +70,13 @@ export function EventDetail({
           ))}
         </tbody>
       </table>
+      {onSession ? (
+        <p className="detail-action">
+          <button type="button" data-action="session" aria-keyshortcuts="s" onClick={onSession}>
+            session → inspect (s)
+          </button>
+        </p>
+      ) : null}
       <h3>session timeline</h3>
       <p className="dim">
         {`sent events of this session: ${timeline.length}`}

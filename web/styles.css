@@ -175,7 +175,7 @@ button {
 .link {
   font: 400 11px / 1.2 var(--mono);
 }
-/* ---- views nav: its own text-tab row, digits 1-8, never wraps ---- */
+/* ---- views nav: its own text-tab row, digits 1-9, never wraps ---- */
 .views-nav {
   display: flex;
   flex-wrap: nowrap;
@@ -232,6 +232,7 @@ button {
 
 /* ---- stage ---- */
 .stage {
+  position: relative;
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr) 300px;
   min-height: 0;
@@ -1732,5 +1733,242 @@ a.dl:hover {
   .filters {
     height: 52px;
     min-height: 52px;
+  }
+}
+
+/* ---- sessions inspector (#43, approved in #41): Lane Bay tokens only, no motion ----
+   A panel laid over the stage only (header, source bar, views nav, scope strip and ticker stay visible).
+   Two panes above 1100 px (list | detail); one pane at a time at 1100 px and below with a back control.
+   Widths below are measured values, see docs/DESIGN.md "Implementation notes". */
+.sessions-panel {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--dim2);
+}
+.sp-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.sp-title {
+  font: 700 11px var(--label);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.sp-head .close {
+  margin-left: auto;
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--line);
+  font: 400 11px var(--mono);
+  padding: 1px 6px;
+  cursor: pointer;
+}
+.sessions-panel .focus-compact {
+  display: block;
+  margin: 0;
+}
+.sessions {
+  display: grid;
+  grid-template-columns: 440px minmax(0, 1fr);
+  gap: 0 12px;
+  flex: 1;
+  min-height: 0;
+  padding: 6px 12px 0;
+}
+.s-list,
+.s-detail {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 2px;
+}
+.s-list {
+  border-right: 1px solid var(--line);
+  padding-right: 8px;
+}
+.sessions h3 {
+  margin: 12px 0 4px;
+}
+.s-list h3,
+.s-detail > h3:first-child {
+  margin-top: 0;
+}
+.s-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.s-cols,
+.s-row {
+  display: grid;
+  grid-template-columns: 48px minmax(72px, 1fr) 112px 46px 66px 46px;
+  gap: 0 4px;
+  align-items: center;
+  width: 100%;
+  height: var(--row);
+  padding: 0 4px 0 6px;
+  font: 400 11px var(--mono);
+  white-space: nowrap;
+}
+.s-cols {
+  font-weight: 700;
+  border-bottom: 1px solid var(--line);
+}
+.s-row {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-left: 2px solid transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.s-row:hover {
+  background: var(--bg);
+}
+.s-row[aria-current="true"] {
+  background: var(--panel2);
+  border-left-color: var(--sel);
+}
+.s-row:focus-visible,
+.s-timeline button:focus-visible {
+  outline-offset: -2px;
+}
+.s-row .s-name {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.s-row .s-err {
+  display: flex;
+  align-items: center;
+}
+.s-back {
+  display: none;
+}
+.s-top {
+  margin: 0 0 4px;
+}
+.s-scope {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--dim);
+  background: var(--panel2);
+  font: 400 13px / 1.35 var(--mono);
+}
+.s-item {
+  overflow-wrap: anywhere;
+}
+.s-id {
+  font-weight: 700;
+}
+.s-timeline {
+  max-height: 176px;
+  overflow: auto;
+}
+.s-timeline li[aria-current="true"] > button {
+  background: var(--panel2);
+  border-left: 2px solid var(--sel);
+  color: var(--ink);
+}
+.s-timeline .t-err {
+  display: inline-flex;
+  align-items: center;
+}
+.s-fields {
+  margin-bottom: 6px;
+}
+.s-fields th,
+.s-fields td {
+  height: auto;
+  min-height: var(--row);
+  padding: 2px 6px 2px 0;
+  vertical-align: top;
+  white-space: normal;
+  word-break: break-word;
+}
+.s-fields th {
+  width: 118px;
+}
+.s-fields td.s-state {
+  white-space: nowrap;
+  width: 1%;
+}
+.s-why {
+  margin-left: 6px;
+}
+.chip {
+  display: inline-block;
+  padding: 0 5px;
+  line-height: 16px;
+  background: transparent;
+  font: 400 11px var(--mono);
+  white-space: nowrap;
+}
+.chip[data-evidence="recorded"] {
+  border: 1px solid var(--ink);
+  color: var(--ink);
+}
+.chip[data-evidence="enriched"] {
+  border: 1px solid var(--ink);
+  color: var(--ink);
+}
+.chip[data-evidence="not_available"] {
+  border: 1px dashed var(--dim);
+  color: var(--dim);
+}
+.s-router {
+  margin-top: 12px;
+  padding: 4px 8px 6px;
+  border: 1px solid var(--line);
+  background: var(--panel2);
+}
+.s-exec {
+  margin-top: 8px;
+  padding: 6px 8px 2px;
+  border: 1px dashed var(--dim2);
+}
+.s-legend {
+  margin: 0;
+}
+
+@media (max-width: 1100px) {
+  .sessions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sessions[data-pane="detail"] .s-list {
+    display: none;
+  }
+  .sessions[data-pane="list"] .s-detail {
+    display: none;
+  }
+  .s-list {
+    border-right: 0;
+    padding-right: 2px;
+  }
+  .s-back {
+    display: inline-flex;
+    align-items: center;
+    height: var(--row);
+    padding: 0 8px;
+    background: transparent;
+    border: 1px solid var(--line);
+    font: 400 11px var(--mono);
+    cursor: pointer;
   }
 }

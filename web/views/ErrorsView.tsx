@@ -1,5 +1,6 @@
 import type { DashboardState, FlowEvent, Source } from "../../src/core/aggregate";
-import { fmt2, fmtInt, fmtRange, fmtTs, SOURCES } from "./format";
+import { fmtInt, fmtRange, fmtTs, SOURCES } from "./format";
+import { PermissionTable } from "./PermissionTable";
 import { StateIcon } from "./parts";
 
 const isTimeout = (text: string) => /time-?out/i.test(text);
@@ -156,39 +157,7 @@ export function ErrorsView({ state, rejected }: { state: DashboardState; rejecte
               </div>
             </dl>
             <p className="note dim">{`newest ${win.permissions.sent} of ${win.permissions.retained} retained verdicts listed`}</p>
-            <table className="list">
-              <thead>
-                <tr>
-                  <th>ts</th>
-                  <th>session</th>
-                  <th>verdict</th>
-                  <th>commands</th>
-                  <th className="num">reversible</th>
-                  <th className="num">routine</th>
-                  <th className="num">latency</th>
-                </tr>
-              </thead>
-              <tbody>
-                {permissions.map((p, i) => (
-                  <tr key={`${p.ts}:${p.session}:${i}`}>
-                    <td>{fmtTs(p.ts)}</td>
-                    <td title={p.session}>{p.session}</td>
-                    <td className={p.verdict.startsWith("allow") ? "ok" : "warn"}>
-                      <span className="glyph" aria-hidden="true">
-                        {p.verdict.startsWith("allow") ? "●" : "◆"}
-                      </span>
-                      {p.verdict}
-                    </td>
-                    <td className="cmd" title={p.commands.join(" ; ")}>
-                      {p.commands.join(" ; ")}
-                    </td>
-                    <td className="num">{p.scores ? fmt2(p.scores.reversible) : "—"}</td>
-                    <td className="num">{p.scores ? fmt2(p.scores.routine) : "—"}</td>
-                    <td className="num">{`${p.latency_ms}ms`}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <PermissionTable permissions={permissions} />
           </>
         )}
       </section>

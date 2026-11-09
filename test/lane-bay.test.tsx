@@ -95,7 +95,7 @@ test("views nav and scope strip are separate rows; the scope strip states source
   const state = await fixtureState();
   const html = shell(state);
   const nav = between(html, '<nav class="views-nav"', "</nav>");
-  expect(nav.match(/data-drawer="/g)).toHaveLength(8);
+  expect(nav.match(/data-drawer="/g)).toHaveLength(9);
   const strip = between(html, 'class="scope-strip"', "</div>");
   expect(strip).not.toContain("data-drawer");
   expect(html.indexOf('class="views-nav"')).toBeLessThan(html.indexOf('class="scope-strip"'));
@@ -548,7 +548,7 @@ test("long ticker disclosures stay keyboard reachable in the 24px scrolling titl
   expect(html).toContain("newest 320 of 320 retained");
   expect(html).toContain("malformed (process lifetime)");
   expect(html).toContain("rejected payloads 12");
-  expect(html).toContain("enter detail · 1-8 views · esc close");
+  expect(html).toContain("enter detail · s session · 1-9 views · esc close");
   const css = await Bun.file("web/styles.css").text();
   expect(css).toMatch(/\.ticker-title\s*\{[^}]*display:\s*flex[^}]*overflow-x:\s*auto/);
   expect(css).toMatch(/\.ticker-title > span\s*\{[^}]*flex:\s*none/);
