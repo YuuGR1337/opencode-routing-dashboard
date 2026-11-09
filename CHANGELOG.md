@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 ## [Unreleased]
 
 ### Added
+- Read-only **Sessions inspector** as the ninth view (key `9`): a per-source session list (source id on each row in the combined view), and a session detail with a scope header that says it is a sample, an ordered timeline that shares the existing replay cursor, the selected row's fields with recorded / enriched / not-available chips (glyph, word and border pattern), this session's permission verdicts (same data and handling as Errors) and a fixed `ROUTER · recommendation, not execution` block. Entry from a selected event with key `s` or the event detail `session` action; `Esc` goes detail → list → close; a `← sessions` control replaces the two panes at 1280 px and below. No execute, retry, approve or deny control and no success wording. `sessionTimeline` now has one definition shared by replay, the event detail and the inspector (#43, #4).
 - Pure session inspection model over retained evidence: `inspectSession` and `listSessions` expose ordered events, linked permissions, errors, scope coverage and per-field evidence state without claiming completeness. Sessions are isolated by source, unknown sessions return empty results, and execution/usage fields are always marked unavailable (#42).
 
 ### Changed

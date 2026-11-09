@@ -1,5 +1,9 @@
 # PLAN
 
+## Sessions inspector view (#43)
+
+- [x] Render the read-only Sessions inspector per the approved #41 contract: ninth view (key `9`), session list, detail with scope header, replay-cursor timeline, three evidence-state chips, session-linked permission verdicts, `ROUTER · recommendation, not execution` block, entry from a selected event (`s` / `session` action) and `Esc` detail → list → close. Tests first (26 new render/behavior tests; red run 25 failed / 1 passed before implementation). Isolated Linux Chromium measurement and DEMO captures `docs/screenshots/m43-*` at 1440×900 and 1024×768, including the nine-tab nav fit with the Alerts badge active. No new colour, font, motion or dependency; no task identity, #5 or aggregate-stat allocation.
+
 ## Session inspection model (#42)
 
 - [x] Add a pure `src/core/session-inspection.ts` model over retained evidence, with tests-first coverage for federated source isolation, eviction/omission coverage, permissions without events, unknown sessions, unavailable execution fields and input immutability. No ingestion/schema change, no UI, no aggregate attribution to sessions. Local typecheck, lint and full test suite pass.

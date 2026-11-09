@@ -117,7 +117,7 @@ Fields, in order: suggestion + conf; needs oracle; decision + reason; ctx agent;
 
 ## Sessions inspector (approved in #41)
 
-Status: **approved contract (maintainer decisions of 2026-11-08 in #41), not implemented, not captured.** It is the only addition to the view list, and it revises the "no new views" line (see Contract status). Everything below reuses Lane Bay tokens, type steps, 22 px rows and the 2 px `--sel` focus ring; it adds no colour, font, motion or dependency.
+Status: **approved contract (maintainer decisions of 2026-11-08 in #41), implemented in #43 and measured in isolated Linux Chromium against anonymized DEMO inputs (captures `docs/screenshots/m43-*`; see "Implementation notes").** It is the only addition to the view list, and it revises the "no new views" line (see Contract status). Everything below reuses Lane Bay tokens, type steps, 22 px rows and the 2 px `--sel` focus ring; it adds no colour, font, motion or dependency.
 
 **Purpose.** A read-only place to read what the retained sample holds for one session of one source, in order, with each field's evidence state. It is a reading aid, not a task monitor: it does not say what ran, whether it worked, or that the session is complete.
 
@@ -134,20 +134,20 @@ Status: **approved contract (maintainer decisions of 2026-11-08 in #41), not imp
 - **Replay:** reuses the existing replay cursor (play/pause/speed, `p , . [ ]`, one cursor shared with the timeline, selection and Call in focus). The inspector adds no second cursor and no new transport. Replay stays a client cursor over the retained sample, not durable history.
 - **Read-only:** no execute, retry, approve, deny, rerun, edit or delete control; no success/“completed” indicator; no row, session or header colour implies pass/fail. Error rows keep the existing error triangle and error name, as elsewhere.
 
-### Layout (proposed values; **not browser-measured**, to be measured in #43)
+### Layout (proposed values; browser-measured in #43, see "Implementation notes" for the values that changed)
 
 | Element | 1440×900 | 1024×768 |
 | --- | --- | --- |
 | Placement | the existing right-side overlay mechanism (same open/close, `Esc`, focus return), in its wide form | same mechanism, full stage width |
-| Panes | two: list ~280 px, detail the rest | one at a time: list, then detail with a `← sessions` back control; `Esc` goes detail → list → close |
+| Panes | two: list ~280 px proposed (**440 px implemented**), detail the rest | one at a time: list, then detail with a `← sessions` back control; `Esc` goes detail → list → close |
 | Chrome kept | DEMO band, header, source bar, views nav, scope strip and ticker stay visible and unchanged | same |
 | Scope header | 2 lines max, 11 px caps labels + 13 px values | 3 lines max; wraps, never truncates counts |
 | Row height | 22 px (timeline and list) | 22 px |
 | Overflow | list and detail scroll inside the panel; long session strings scroll horizontally, not ellipsis | same |
 
-The 640–720 px overlay width recorded in the M4 review does not fit two panes; the wide form is a proposal and is the first thing #43 must measure. If it does not fit at 1024×768 without clipping a count, the single-pane rule above is the fallback, not a smaller font (floor stays 11 px).
+The 640–720 px overlay width recorded in the M4 review does not fit two panes; the wide form is `min(1160px, 100vw)` (measured, see below). If it does not fit at 1024×768 without clipping a count, the single-pane rule above is the fallback, not a smaller font (floor stays 11 px).
 
-### Navigation decision (measured from fonts and CSS, not in a browser)
+### Navigation decision (calculated from fonts and CSS; browser-measured in #43, see below)
 
 Question: can the views row take a ninth tab without wrapping or clipping at 1024 px, given `.views-nav` is `display:flex; flex-wrap:nowrap; overflow:hidden; gap:2px; padding:0 12px` and each tab is `padding:0 10px`, label 12.5 px Instrument Sans, digit 11 px IBM Plex Mono with 4 px margin?
 
@@ -159,7 +159,7 @@ Method: advance widths summed from the repository's own `InstrumentSans-Regular/
 | Nine tabs (+ Sessions, ≈ 83.5 px) | ≈ 714 px | ≈ 70 % |
 | Nine tabs + active Alerts badge (≈ 30 px estimated: 6 margin + 8 padding + 2 border + digits) | ≈ 745 px | ≈ 73 % |
 
-Result: the model leaves about 280 px of slack at 1024 px, so a ninth tab is expected to fit without wrapping. **Decision: ninth tab `Sessions`, key `9`** (the key handler already accepts `1`…`DRAWERS.length`), **approved by the maintainer, subject to a browser measurement in #43 confirms no clipping at 1024×768 with the Alerts badge active.** Maintainer-approved fallback if that measurement fails: no tab; entry only from the event detail `session` action and key `s`, with the list as the first state of the inspector. This is a calculation from font files, not a rendered measurement; the 1280 px tier was not computed (larger than 1024, so it is not the binding case).
+Result: the model leaves about 280 px of slack at 1024 px, so a ninth tab is expected to fit without wrapping. **Decision: ninth tab `Sessions`, key `9`** (the key handler already accepts `1`…`DRAWERS.length`), **approved by the maintainer, subject to a browser measurement in #43 confirming no clipping at 1024×768 with the Alerts badge active. That measurement passed (see "Implementation notes"); the fallback is not needed.** Maintainer-approved fallback if that measurement fails: no tab; entry only from the event detail `session` action and key `s`, with the list as the first state of the inspector. This is a calculation from font files, not a rendered measurement; the 1280 px tier was not computed (larger than 1024, so it is not the binding case).
 
 ### Three field states (shape and word, never colour alone)
 
@@ -216,6 +216,18 @@ DEMO · STATIC WIREFRAME · PROPOSAL  (1440×900, two panes; inside the overlay)
 ```
 
 This is a drawing in text, not a capture. Labelled DEMO mockups or screenshots required by #41 were **not produced** (no browser or dependencies were available in this docs-only lane and none were installed); they remain open for #43.
+
+### Implementation notes (#43, measured in isolated Linux Chromium; DEMO data, not an accessibility audit)
+
+Measured with Playwright 1.64.1 driving `/usr/bin/chromium` 155 against `scripts/demo-exchange.ts` (anonymized fixtures, three sources, Alerts badge active as `▲4`) at 1440×900 and 1024×768, reduced motion on. Captures: `docs/screenshots/m43-{nav-alerts,sessions-list,sessions-detail,sessions-detail-lower,sessions-entry-s}-{1440x900,1024x768}.png`, reviewed against this file.
+
+- **Nav fit (the condition of the ninth-tab decision):** nine tabs sit on one row (no wrapping), the row's `scrollWidth` equals its `clientWidth` (1440 and 1024), the last tab's right edge is at **714 px** with the Alerts badge active, and the row stays 28 px. This is below the ≈ 745 px estimate, so the font arithmetic was conservative. The no-tab fallback is not needed.
+- **Overlay:** `#drawer-sessions` is `min(1160px, 100vw)` above 1280 px and `100vw` at 1280 px and below. At 1440 it is two panes: list **440 px** (not ~280: a 22 px row must hold source, session, first–last time, sent, error mark and permission count in words, and 280 px clipped them), detail 703 px. At 1024 one pane at a time with the `← sessions` back control. The single-pane switch is at **1280 px**, the existing narrow tier, not at 1024 only.
+- **Rows:** list and timeline rows measured 22 px, no clipped row content in the list, no horizontal overflow in the detail pane or the timeline. The scope header measured 2 lines at 1440 and 1 line at 1024 with DEMO data (budget 2 / 3); it wraps and never truncates counts. Long session strings scroll horizontally inside the list cell and wrap in the scope header.
+- **Drawer tabs and standard drawer width (changed from M4):** nine tabs share the drawer header with the close control. Measured: the strip needs 686 px at 1440 and 656 px at 1024. The M4 widths (720 px, 700 px at ≤1280) left 596 / 576 px and hid the last tabs behind a horizontal scroll, so **all standard drawers are now 810 px (780 px at ≤1280)**; the tab strip fits without scrolling in every drawer at both sizes (`scrollWidth` = `clientWidth`) and keeps horizontal scroll only as a fallback. This supersedes "640–720 px wide" in the M4 review for the Agreement, Usage, Errors, History, Alerts, Quota, Presets and Export drawers; their content is unchanged.
+- **Overlay geometry deviation:** the inspector reuses the existing drawer mechanism, which is a full-height right panel. While it is open it covers the right part of the header readouts and nav (and, at 1280 px and below, all of them), so the "Chrome kept" row of the layout table is **not** met literally: only the DEMO band and the left rail stay visible at 1440. The drawer's own tabs, `Esc` and the nav keys remain the way to switch views. Whether the inspector should instead sit below the chrome and above the ticker is an open question for the maintainer.
+- **Keyboard:** `Esc` goes detail → list → close with focus returning (row in the list, then the opener). Inside the detail, `↑ ↓`, `j k` and `, .` move the selected row and the shared replay cursor (and pause it); `p` and `[ ]` act on the same cursor; `r` is unchanged. In the list, `↑ ↓` move between rows. Key `s` works from the ticker or the event detail only, not while another drawer is open.
+- **Refinements to the text of this contract:** the empty permission text reads `no permission verdicts in the retained window for this session`; the enriched chip shows `＋ enriched · validated` without `via <field>` because the #42 model carries no source field for it (and nothing produces enriched yet); the `session` action in the event detail reads `session → inspect (s)`.
 
 ### Not in the inspector
 
