@@ -15,12 +15,8 @@ const MIN_DELAY = 120;
 const MAX_DELAY = 1500;
 const FALLBACK_DELAY = 400;
 
-/** The session's sent events, oldest first. Never mutates the input. */
-export function sessionTimeline(events: FlowEvent[], session: string): FlowEvent[] {
-  return events
-    .filter((e) => e.session === session)
-    .sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-}
+/** The session's sent events, oldest first. One definition, shared with the Sessions inspector. */
+export { sessionTimeline } from "../src/core/session-inspection";
 
 /** Pause before the next event: the recorded gap divided by speed, kept between 120 ms and 1.5 s. */
 export function replayDelay(prevTs: string, nextTs: string, speed: number): number {

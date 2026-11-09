@@ -79,7 +79,7 @@ function parseSessionId(sessionId: string): ParsedSessionId {
 }
 
 /** The session's sent events, oldest first. Never mutates the input. */
-function sessionTimeline(events: FlowEvent[], session: string): FlowEvent[] {
+export function sessionTimeline(events: FlowEvent[], session: string): FlowEvent[] {
   return events
     .filter((e) => e.session === session)
     .sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
