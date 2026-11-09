@@ -1,5 +1,9 @@
 # PLAN
 
+## External evidence contract (#5)
+
+- [x] Research and document the read-only session-linked external evidence contract in `docs/decisions/0002-session-linked-external-evidence.md`: manual triplet association, exact-SHA applicability, five evidence states, human approval `unknown` without an auditable event, freshness/provenance, 13 synthetic cases and separately listed authorization decisions. Documentation only; no code, access, scopes or UI. Provider semantics unverified until an authorized integration step.
+
 ## Sessions inspector view (#43)
 
 - [x] Render the read-only Sessions inspector per the approved #41 contract: ninth view (key `9`), session list, detail with scope header, replay-cursor timeline, three evidence-state chips, session-linked permission verdicts, `ROUTER · recommendation, not execution` block, entry from a selected event (`s` / `session` action) and `Esc` detail → list → close. Tests first (26 new render/behavior tests; red run 25 failed / 1 passed before implementation). Isolated Linux Chromium measurement and DEMO captures `docs/screenshots/m43-*` at 1440×900 and 1024×768, including the nine-tab nav fit with the Alerts badge active; the inspector is a stage-only panel so the chrome and ticker stay visible. No new colour, font, motion or dependency; no task identity, #5 or aggregate-stat allocation.
