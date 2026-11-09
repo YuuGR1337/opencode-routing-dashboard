@@ -5,6 +5,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+### Added
+- Pure session inspection model over retained evidence: `inspectSession` and `listSessions` expose ordered events, linked permissions, errors, scope coverage and per-field evidence state without claiming completeness. Sessions are isolated by source, unknown sessions return empty results, and execution/usage fields are always marked unavailable (#42).
+
 ### Changed
 - Apply the approved Lane Bay identity to the existing switchboard: graphite surfaces, distinct selection and warning colors, role shapes, separate navigation/scope rows, responsive ticker columns and compact call focus. Keep aggregate statistics separate from calls, preserve existing source/filter/replay behavior and expose detailed browser-payload rejection counts in Errors (#33).
 
