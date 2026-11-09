@@ -528,7 +528,9 @@ function Ticker({
             {`intake: malformed ${m.observe + m.route + m.permissions}${rejected === undefined ? "" : ` · rejected ${rejected}`}`}
           </span>
         </span>
-        <span className="keys dim">/ search · f filters · j/k row · enter detail · 1-8 views · esc close</span>
+        <span className="keys dim">
+          / search · f filters · j/k row · enter detail · s session · 1-9 views · esc close
+        </span>
       </h2>
       {notice ? (
         <p className="notice" role="status" data-evicted="true">

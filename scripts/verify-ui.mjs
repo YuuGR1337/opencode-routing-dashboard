@@ -707,7 +707,7 @@ async function laneBayChecks({ browser, origin, initial, outDir, check, problems
     const visited = [];
     let current = await focusInfo();
     let steps = 0;
-    while (!current.inFilters && steps < 12) {
+    while (!current.inFilters && steps < 13) {
       await page.keyboard.press("Tab");
       current = await focusInfo();
       visited.push(current);
@@ -715,8 +715,8 @@ async function laneBayChecks({ browser, origin, initial, outDir, check, problems
     }
     const viewsButtons = visited.filter((v) => v.inViewsNav && v.outline !== "0px");
     ok(
-      "Tab traverses all 8 views buttons with visible focus before filters",
-      viewsButtons.length === 8 && visited[visited.length - 1]?.inFilters,
+      "Tab traverses all 9 views buttons with visible focus before filters",
+      viewsButtons.length === 9 && visited[visited.length - 1]?.inFilters,
       `visited=${JSON.stringify(visited.map((v) => ({ id: v.id, ariaLabel: v.ariaLabel, drawer: v.drawer })))}`,
     );
     ok("filters has visible focus", current.outline !== "0px", JSON.stringify(current));
