@@ -123,9 +123,12 @@ const federated = (): ExchangeState =>
 const render = (state: ExchangeState | DashboardState, props: Record<string, unknown> = {}) =>
   renderToStaticMarkup(<DashboardShell state={state as ExchangeState} now={NOW} {...props} />);
 const text = (html: string) => html.replace(/<!-- -->/g, "").replace(/<[^>]+>/g, "");
+/** The inspector panel only: from its opening tag to the end of that aside (it holds no nested aside). */
 const drawer = (html: string) => {
   const at = html.indexOf('id="drawer-sessions"');
-  return at < 0 ? "" : html.slice(at);
+  if (at < 0) return "";
+  const end = html.indexOf("</aside>", at);
+  return html.slice(at, end < 0 ? undefined : end);
 };
 const count = (html: string, needle: string) => html.split(needle).length - 1;
 
@@ -472,23 +475,55 @@ test("sessions styles use existing tokens, add no motion and keep the 11 px floo
   expect(css).not.toMatch(/box-shadow|text-shadow|gradient|backdrop-filter/);
 });
 
-test("wide overlay has two panes; at 1280 px and below one pane shows at a time", async () => {
+test("two panes above 1100 px; at 1100 px and below one pane shows at a time", async () => {
   const css = await sessionsCss();
-  expect(css).toMatch(/#drawer-sessions\s*\{[^}]*width:/);
+  expect(css).toMatch(/\.sessions\s*\{[^}]*grid-template-columns:\s*\d+px minmax\(0, 1fr\)/);
   expect(css).toMatch(/\.s-back\s*\{[^}]*display:\s*none/);
-  const narrow = css.slice(css.indexOf("@media (max-width: 1280px)"));
+  const narrow = css.slice(css.indexOf("@media (max-width: 1100px)"));
   expect(narrow).toMatch(/\.sessions\[data-pane="detail"\]\s+\.s-list\s*\{[^}]*display:\s*none/);
   expect(narrow).toMatch(/\.sessions\[data-pane="list"\]\s+\.s-detail\s*\{[^}]*display:\s*none/);
   expect(narrow).toMatch(/\.s-back\s*\{[^}]*display:\s*(inline-)?flex/);
   expect(css).toMatch(/\.s-row\s*\{[^}]*height:\s*var\(--row\)/);
 });
 
-test("the standard drawers are wide enough to show all nine tabs without scrolling the tab strip", async () => {
-  // Measured in Chromium (#43): nine tabs need a 676 px strip at 1440 and 640 px at 1024, beside the close control.
-  // A 720 px drawer left 596 px and a 700 px one 576 px, hiding the last tabs behind a scroll.
+// ---- placement: the chrome stays visible (DESIGN "Chrome kept") ----
+
+test("the inspector sits inside the stage; header, nav, scope strip and ticker stay rendered around it", () => {
+  const html = render(federated(), { initialSession: { session: JSON.stringify(["pc", "same"]) } });
+  const stageAt = html.indexOf('<main class="stage"');
+  const panelAt = html.indexOf('id="drawer-sessions"');
+  const stageEnd = html.indexOf("</main>");
+  expect(stageAt).toBeGreaterThan(-1);
+  expect(panelAt).toBeGreaterThan(stageAt);
+  expect(panelAt).toBeLessThan(stageEnd);
+  for (const chrome of ['class="head"', 'class="exchange-bar"', 'class="views-nav"', 'class="scope-strip"'])
+    expect(html.indexOf(chrome)).toBeGreaterThan(-1);
+  for (const chrome of ['class="head"', 'class="views-nav"', 'class="scope-strip"'])
+    expect(html.indexOf(chrome)).toBeLessThan(stageAt);
+  expect(html.indexOf('aria-label="ticker tape"')).toBeGreaterThan(stageEnd);
+  // It is not the full-height drawer: no drawer class, so nothing covers the header or the nav.
+  expect(html.slice(panelAt - 40, panelAt + 120)).not.toContain('class="drawer"');
+});
+
+test("Call in focus stays visible inside the inspector, on the replay cursor event", () => {
+  const state = single();
+  const target = state.events.find((e) => e.message === "m2")!;
+  const panel = drawer(render(state, { initialSession: { session: "s_A", event: target.id } }));
+  expect(panel).toContain('aria-label="call in focus"');
+  expect(text(panel.slice(panel.indexOf('aria-label="call in focus"'), panel.indexOf("s-scope")))).toContain(
+    "TimeoutError",
+  );
+  // The list state shows the focus of the selected ticker call too.
+  expect(drawer(render(single(), { initialDrawer: "sessions" }))).toContain('aria-label="call in focus"');
+});
+
+test("the inspector is not one of the drawer tabs and the other drawers keep their widths", async () => {
+  const html = render(single(), { initialDrawer: "errors" });
+  expect(html.match(/data-tab="/g)).toHaveLength(8);
+  expect(html).not.toContain('data-tab="sessions"');
   const css = await Bun.file("web/styles.css").text();
-  const base = Number(css.match(/\n\.drawer\s*\{[^}]*?\bwidth:\s*(\d+)px/)?.[1]);
-  const narrow = Number(css.match(/@media \(max-width: 1280px\)\s*\{\s*\.drawer\s*\{\s*width:\s*(\d+)px/)?.[1]);
-  expect(base).toBeGreaterThanOrEqual(810);
-  expect(narrow).toBeGreaterThanOrEqual(780);
+  expect(Number(css.match(/\n\.drawer\s*\{[^}]*?\bwidth:\s*(\d+)px/)?.[1])).toBe(720);
+  expect(css).toMatch(/\.stage\s*\{[^}]*position:\s*relative/);
+  expect(css).toMatch(/\.sessions-panel\s*\{[^}]*position:\s*absolute[^}]*inset:\s*0/);
+  expect(css).not.toMatch(/#drawer-sessions\s*\{[^}]*position:\s*fixed/);
 });

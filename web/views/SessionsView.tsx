@@ -10,6 +10,7 @@ import {
 } from "../../src/core/session-inspection";
 import { evidence } from "../exchange";
 import { moveRow, sessionKey } from "../sessions";
+import { CompactFocus } from "./FlowView";
 import { fmt2, fmtClock, fmtTs, RENDER_LIMIT } from "./format";
 import { PermissionTable } from "./PermissionTable";
 import { StateIcon } from "./parts";
@@ -459,5 +460,38 @@ export function SessionsView({
         />
       )}
     </div>
+  );
+}
+
+/**
+ * The inspector's frame. It is laid over the stage only, so the header, source bar, views nav, scope strip and ticker
+ * stay visible and clickable. Call in focus stays pinned at the top (the replay cursor's event) because the stage
+ * that normally shows it is covered.
+ */
+export function SessionsPanel({
+  focus,
+  onClose,
+  children,
+}: {
+  focus: FlowEvent | undefined;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  const close = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    close.current?.focus();
+  }, []);
+  return (
+    <aside id="drawer-sessions" className="sessions-panel" role="dialog" aria-label="Sessions">
+      <header className="sp-head">
+        <span className="sp-title">sessions inspector</span>
+        <span className="dim">retained sample · one session of one source · read-only, not a task monitor</span>
+        <button ref={close} type="button" className="close" aria-label="close sessions" onClick={onClose}>
+          close · esc
+        </button>
+      </header>
+      {focus ? <CompactFocus event={focus} /> : <p className="focus-compact dim">no call in focus</p>}
+      {children}
+    </aside>
   );
 }

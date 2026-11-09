@@ -18,7 +18,7 @@ import { FlowView, type ReplayView } from "./views/FlowView";
 import { fmtClock, fmtNum, fmtTs, pct, RENDER_LIMIT, SOURCES, STATUS_CLASS, STATUS_ICON } from "./views/format";
 import { HistoryView } from "./views/HistoryView";
 import { Drawer, StateIcon } from "./views/parts";
-import { SessionsView } from "./views/SessionsView";
+import { SessionsPanel, SessionsView } from "./views/SessionsView";
 import { SourceBar } from "./views/SourceBar";
 import { UsageView } from "./views/UsageView";
 
@@ -618,7 +618,9 @@ export function DashboardShell({
   );
   const r = vs.readouts;
   const a = vs.agreement;
-  const drawerView = DRAWERS.find((d) => d.name === drawer);
+  // Sessions is a panel over the stage, not a drawer: it has no drawer chrome and no entry in the drawer tabs.
+  const drawerView = DRAWERS.find((d) => d.name === drawer && d.name !== "sessions");
+  const drawerTabs = DRAWERS.filter((d) => d.name !== "sessions");
   const src = view.source;
   const staleNote =
     src && !view.waiting && src.status !== "live"
@@ -741,33 +743,39 @@ export function DashboardShell({
           </>
         }
         onSelect={openDetail}
+        overlay={
+          drawer === "sessions" ? (
+            <SessionsPanel focus={selectedEvent ?? rows[0]} onClose={closeOverlay}>
+              <SessionsView
+                state={vs}
+                viewSource={view.source?.id ?? null}
+                hasExchange={Boolean(state.exchange)}
+                inspected={inspected}
+                selected={selected}
+                replay={
+                  replay && replay.session === inspected ? { playing: replay.playing, speed: replay.speed } : null
+                }
+                lastKnown={connected === false ? "link down · showing last retained state" : staleNote}
+                onOpen={(session) => actions.current.openSession(session)}
+                onBack={() => actions.current.backToList()}
+                onSelect={(id) => actions.current.focusEvent(id)}
+              />
+            </SessionsPanel>
+          ) : undefined
+        }
       />
       {drawerView ? (
         <Drawer
           name={drawerView.name}
           title={drawerView.title}
           scope={drawerView.scope}
-          tabs={DRAWERS}
+          tabs={drawerTabs}
           onTab={(name) => openDrawer(name as DrawerName)}
           onClose={closeOverlay}
         >
           {drawerView.name === "agreement" ? <AgreementView state={vs} /> : null}
           {drawerView.name === "usage" ? <UsageView state={vs} /> : null}
           {drawerView.name === "errors" ? <ErrorsView state={vs} rejected={rejected} /> : null}
-          {drawerView.name === "sessions" ? (
-            <SessionsView
-              state={vs}
-              viewSource={view.source?.id ?? null}
-              hasExchange={Boolean(state.exchange)}
-              inspected={inspected}
-              selected={selected}
-              replay={replay && replay.session === inspected ? { playing: replay.playing, speed: replay.speed } : null}
-              lastKnown={connected === false ? "link down · showing last retained state" : staleNote}
-              onOpen={(session) => actions.current.openSession(session)}
-              onBack={() => actions.current.backToList()}
-              onSelect={(id) => actions.current.focusEvent(id)}
-            />
-          ) : null}
           {drawerView.name === "history" ? <HistoryView state={vs} /> : null}
           {drawerView.name === "alerts" ? <AlertsPanel view={alerts} now={now} /> : null}
           {drawerView.name === "quota" ? <QuotaPanel view={quotaView(state, view.id, now)} /> : null}

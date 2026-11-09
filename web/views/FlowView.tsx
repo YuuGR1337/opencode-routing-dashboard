@@ -214,7 +214,7 @@ function PatchBay({
 }
 
 /** Two-line call in focus for widths where the full readout is hidden. Only recorded fields; exec stays —. */
-function CompactFocus({ event: e }: { event: FlowEvent }) {
+export function CompactFocus({ event: e }: { event: FlowEvent }) {
   const comparable = isRole(e.suggestion) && isRole(e.contextAgent);
   const same = comparable && e.suggestion === e.contextAgent;
   const failed = e.errors.length > 0;
@@ -644,6 +644,7 @@ export function FlowView({
   waiting,
   rejected,
   aggregateSource,
+  overlay,
   onSelect,
 }: {
   state: DashboardState;
@@ -655,6 +656,8 @@ export function FlowView({
   aggregateSource?: string;
   /** Browser payloads dropped by validation since page load; omit to hide the counter. */
   rejected?: number;
+  /** Panel laid over the stage only (the Sessions inspector); header, nav, scope strip and ticker stay visible. */
+  overlay?: ReactNode;
   filterBar: ReactNode;
   filterNote: string | null;
   /** Announcement shown above the ticker filters (selected event evicted). */
@@ -689,6 +692,7 @@ export function FlowView({
           waiting={waiting}
         />
         <ModelRail state={state} source={aggregateSource} />
+        {overlay}
       </main>
       <Ticker
         state={state}
