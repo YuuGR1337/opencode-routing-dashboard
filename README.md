@@ -21,6 +21,15 @@ Ranked limitations and process-evidence gaps are listed in [docs/KNOWN_ISSUES.md
 Future directions and their approval boundaries live in [docs/ROADMAP.md](docs/ROADMAP.md).
 Contributor skill procedures and safe evaluation cases are described in [docs/AGENT_WORKFLOWS.md](docs/AGENT_WORKFLOWS.md).
 
+## How to read the board / Roadmap
+
+Work lives on the public [project board](https://github.com/users/crisesarmiento/projects/6), not only in the issue list.
+
+- **Status** (`Todo` / `In Progress` / `Done`) is the live column. `Todo` is backlog; it does not mean someone is implementing the issue.
+- **Decision** is the authorization gate. `Under evaluation` is not permission to write code. Start implementation only when the issue is `Approved`.
+- **Milestones** group Approved work by horizon and have no due dates: `v0.2 Lanzar` (first public release and privacy), `v0.3 Primera hora` (first-session comprehension), `Escritorio` (Electron on the shared local service), and `v1.0`. Research issues stay off those milestones until there is an approved product slice.
+- Product direction and evidence gates are in [docs/ROADMAP.md](docs/ROADMAP.md). This section is the short visitor-facing map; the roadmap document is the source of product boundaries.
+
 ## Run locally
 
 Requires Bun >= 1.2. OpenCode is optional when using an offline stats file or disabling stats.
