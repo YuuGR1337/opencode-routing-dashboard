@@ -1,5 +1,12 @@
 # opencode-routing-dashboard
 
+## Views
+
+Flow, Agreement, Usage, Quota, **Sessions** (read-only inspector over retained, transmitted events; not a complete archive — it cannot show omitted or evicted rows) and **Replay** (play/pause and stepping over a retained session; not a durable archive).
+
+![Sessions](docs/screenshots/m43-sessions-list-1440x900.png)
+![Replay](docs/screenshots/m9-replay-1440x900.png)
+
 A real-time, local-first switchboard for [OpenCode](https://opencode.ai) routing:
 Jev suggestions, recorded context agents, route decisions, aggregate model usage and errors.
 It does not invent execution agents, per-message model usage or fallback events that the logs cannot establish.
