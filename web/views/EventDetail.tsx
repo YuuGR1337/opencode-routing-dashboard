@@ -3,6 +3,7 @@ import { clientText, evidence } from "../exchange";
 import { sessionTimeline } from "../replay";
 import { fmt2, fmtTs } from "./format";
 import { StateIcon } from "./parts";
+import { SuggestionEvidence } from "./SuggestionEvidence";
 
 export function EventDetail({
   event,
@@ -70,6 +71,7 @@ export function EventDetail({
           ))}
         </tbody>
       </table>
+      <SuggestionEvidence event={event} />
       {onSession ? (
         <p className="detail-action">
           <button type="button" data-action="session" aria-keyshortcuts="s" onClick={onSession}>
