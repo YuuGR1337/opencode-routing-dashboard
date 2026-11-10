@@ -1,12 +1,5 @@
 # opencode-routing-dashboard
 
-## Views
-
-Flow, Agreement, Usage, Quota, **Sessions** (read-only inspector over retained, transmitted events; not a complete archive — it cannot show omitted or evicted rows) and **Replay** (play/pause and stepping over a retained session; not a durable archive).
-
-![Sessions](docs/screenshots/m43-sessions-list-1440x900.png)
-![Replay](docs/screenshots/m9-replay-1440x900.png)
-
 A real-time, local-first switchboard for [OpenCode](https://opencode.ai) routing:
 Jev suggestions, recorded context agents, route decisions, aggregate model usage and errors.
 It does not invent execution agents, per-message model usage or fallback events that the logs cannot establish.
@@ -27,6 +20,15 @@ See [docs/SPEC.md](docs/SPEC.md) for source formats and evidence limits,
 Ranked limitations and process-evidence gaps are listed in [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md).
 Future directions and their approval boundaries live in [docs/ROADMAP.md](docs/ROADMAP.md).
 Contributor skill procedures and safe evaluation cases are described in [docs/AGENT_WORKFLOWS.md](docs/AGENT_WORKFLOWS.md).
+
+## How to read the board / Roadmap
+
+Work lives on the public [project board](https://github.com/users/crisesarmiento/projects/6), not only in the issue list.
+
+- **Status** (`Todo` / `In Progress` / `Done`) is the live column. `Todo` is backlog; it does not mean someone is implementing the issue.
+- **Decision** is the authorization gate. `Under evaluation` is not permission to write code. Start implementation only when the issue is `Approved`.
+- **Milestones** group Approved work by horizon and have no due dates: `v0.2 Lanzar` (first public release and privacy), `v0.3 Primera hora` (first-session comprehension), `Escritorio` (Electron on the shared local service), and `v1.0`. Research issues stay off those milestones until there is an approved product slice.
+- Product direction and evidence gates are in [docs/ROADMAP.md](docs/ROADMAP.md). This section is the short visitor-facing map; the roadmap document is the source of product boundaries.
 
 ## Run locally
 
@@ -181,7 +183,8 @@ full raw records remain inspectable for displayed events.
 - **History:** weekly stats snapshots; each point retains its own source range.
 - **Sources:** combined or individual PC/Orca/local inputs, health and client/directory evidence. Configured labels are not proof of runtime client identity.
 - **Alerts / Quota / Presets:** debounced evidence alerts, user-limit estimates and period comparison with source coverage. Unknown execution metrics remain unavailable.
-- **Replay:** play/pause, stepping and speed over a retained session, synchronized with Call in focus.
+- **Sessions:** read-only inspector over retained, transmitted events. It is not a complete archive and cannot show omitted or evicted rows.
+- **Replay:** play/pause, stepping and speed over a retained session, synchronized with Call in focus. It is not a durable session archive.
 - **Export:** period downloads in Markdown/CSV for the selected source or all sources.
 
 Shortcuts: `/` search, `f` filters, `s` sources, `j`/`k` rows, `Enter` details, `1`–`8` drawers, `Esc` close. Replay controls also expose keyboard hints.
@@ -190,6 +193,10 @@ The detail drawer preserves raw records and a session timeline of transmitted ev
 ![Fixture replay switchboard](docs/screenshots/m4-flow-1440x900.png)
 
 ![Context agreement at 1024×768](docs/screenshots/m4-agreement-1024x768.png)
+
+![Sessions inspector over retained events](docs/screenshots/m43-sessions-list-1440x900.png)
+
+![Replay over a retained session](docs/screenshots/m9-replay-1440x900.png)
 
 ![Multi-source fixture exchange](docs/screenshots/m9-real-combined-1440x900.png)
 
